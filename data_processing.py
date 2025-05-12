@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 import torch
 from torch.utils.data.dataset import random_split
 from collections import Counter
@@ -8,9 +9,8 @@ import random
 
 class DataManager():
     def __init__(self):
-        
         # Datasets
-        self.df_data = None
+        self.all_data = None
         self.training_data = None
         self.validation_data = None
         self.test_data = None
@@ -18,47 +18,52 @@ class DataManager():
         # Dictionaries
         self.char_to_ind = None
         self.ind_to_char = None
-    
+
+        # Sequence list
+        self.seq_list = None
+
+        # variables
+        self.K = None
+
     def read_files(self):
-        df = pd.read_csv("bbc-text.csv")
-        df.fillna('', inplace=True)
+        root_dir = './bbc'
+        text_list = []
+        for root, _, filenames in os.walk(root_dir):
+            if len(filenames) > 0:
+                for file in filenames:
+                    with open(os.path.join(root, file), 'r') as text_file:
+                        text_list.append(text_file.read())
 
         generator = torch.Generator().manual_seed(42)
-        train, val, test = random_split(df['text'], [0.7,0.1, 0.2], generator)
+        train, val, test = random_split(text_list, [0.7,0.1, 0.2], generator)
         
-        self.df_data = df['text'].to_string(index = False, header = False)
-        self.training_data = df['text'][train.indices]
-        self.validation_data = df['text'][val.indices]
-        self.test_data = df['text'][test.indices]
-
+        self.all_data = ''.join(text_list)
+        self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
+        self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
+        self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
         print('Files have been read.')
 
-
     def encode_data(self):
-        unique_chars = list(set(self.df_data))
-        print(any(c.isupper() for c in self.df_data))
+        unique_chars = list(set(self.all_data))
         self.K = len(unique_chars)
-        print(''.join(unique_chars))
-        char_to_ind = {}
-        ind_to_char = {}
+        # print(''.join(sorted(unique_chars)))
+        self.char_to_ind = {}
+        self.ind_to_char = {}
         for i, char in enumerate(unique_chars):
-            char_to_ind[char] = i
-            ind_to_char[i]    = char 
+            self.char_to_ind[char] = i
+            self.ind_to_char[i]    = char 
         print(self.K)
         print('Data has been encoded')
-        
 
-    def create_sequences(self, seq_length:int):
-        seq_length = 25
-
+    def create_sequences(self, data:str, seq_length:int):
         # Divide data into sequences
         seq_list = []
-        for idx in range(int(len(self.df_data) / seq_length)):
-            x_seq = self.df_data[idx: idx + seq_length]
-            y_seq = self.df_data[idx + 1: idx + seq_length + 1]
+        for idx in range(int(len(data) / seq_length)):
+            x_seq = data[idx: idx + seq_length]
+            y_seq = data[idx + 1: idx + seq_length + 1]
             seq_list.append((x_seq, y_seq))
         
-
+        return seq_list
 
 def main():
     datamanager = DataManager()

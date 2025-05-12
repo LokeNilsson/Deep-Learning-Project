@@ -175,6 +175,16 @@ def main():
     datamanager = DataManager()
     datamanager.read_files()
     datamanager.encode_data()
+    
+    rng = np.random.default_rng()
+    BitGen = type(rng.bit_generator)
+    rng.bit_generator.state = BitGen(42).state
+
+    seq_length = 25
+    rnn = RNN(m=100, K=datamanager.K, rng=rng ,tau=seq_length)
+
+
+
 
 if __name__== "__main__":
     main()
