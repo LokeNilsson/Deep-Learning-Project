@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pickle
 from time import perf_counter
 
-class RNN:
+class LSTM:
     def __init__(self, m, K, eta, rng, tau, ind_to_char, char_to_ind):
         # mapping between characters and integers
         self.ind_to_char = ind_to_char
@@ -37,7 +37,7 @@ class RNN:
         V = (1/np.sqrt(m))*rng.standard_normal(size = (m, K), dtype=np.float64) 
 
         # store parameters in dictionary
-        self.rnn = {
+        self.net = {
             'b' : b,
             'c' : c,
             'U' : U,
@@ -56,12 +56,10 @@ class RNN:
 
     def ComputeValidationLoss(self, X:list, y:list, h0_np:np.ndarray)->list:
         ht = torch.from_numpy(h0_np)
-        
-        tau = self.tau
 
         torch_network = {}
-        for kk in self.rnn.keys():
-            torch_network[kk] = torch.tensor(self.rnn[kk], requires_grad=True)
+        for kk in self.net.keys():
+            torch_network[kk] = torch.tensor(self.net[kk], requires_grad=True)
 
         # Create activation functions       
         apply_tanh = torch.nn.Tanh()
@@ -75,19 +73,11 @@ class RNN:
         for i, (Xbatch_np, ybatch) in enumerate(zip(X, y)):
             Xbatch = torch.from_numpy(Xbatch_np) 
             for t in range(self.tau):
-                a = torch.matmul(hprev, torch_network['W']) + torch.matmul(Xbatch[t:t+1], torch_network['U']) + torch_network['b']
-                assert a.shape == (1,self.m)
-
-                ht = apply_tanh(a)
-                Hs[t:t+1, :] = ht
-
-                hprev = ht
-            
-            Os = torch.matmul(Hs, torch_network['V']) + torch_network['c']       
-            P = apply_softmax(Os)    
+                pass # TODO: Forward Pass
+            P = None 
             
             # compute the loss
-            loss = torch.mean(-torch.log(P[np.arange(tau), ybatch]))
+            loss = torch.mean(-torch.log(P[np.arange(self.tau), ybatch]))
             loss_list.append(loss.detach().numpy())
         
         return np.mean(loss_list)
@@ -99,8 +89,8 @@ class RNN:
         ht = torch.from_numpy(h0_np)
         
         torch_network = {}
-        for kk in self.rnn.keys():
-            torch_network[kk] = torch.tensor(self.rnn[kk], dtype = torch.float64, requires_grad=True)
+        for kk in self.net.keys():
+            torch_network[kk] = torch.tensor(self.net[kk], dtype = torch.float64, requires_grad=True)
      
         apply_tanh = torch.nn.Tanh()
         apply_softmax = torch.nn.Softmax(dim=1) 
@@ -111,17 +101,9 @@ class RNN:
         hprev = ht
         loss_list = []
         for t in range(self.tau):
-            a = torch.matmul(hprev, torch_network['W']) + torch.matmul(X[t:t+1,:], torch_network['U']) + torch_network['b']
-
-            ht = apply_tanh(a)
-            Hs[t:t+1, :] = ht
-
-            hprev = ht
-        
-        self.last_h = hprev
-        Os = torch.matmul(Hs, torch_network['V']) + torch_network['c']       
-        P = apply_softmax(Os)    
-        
+            pass # TODO: Forward Pass
+            
+        P = None
         # compute the loss
         loss = torch.mean(-torch.log(P[np.arange(self.tau), y]))
         loss_list.append(loss.detach().numpy())
@@ -131,9 +113,8 @@ class RNN:
 
         # extract the computed gradients and make them numpy arrays
         grads = {}
-        for kk in self.rnn.keys():
+        for kk in self.net.keys():
             grads[kk] = torch_network[kk].grad.numpy()
-
 
         loss_mean = np.mean(loss_list)
         return grads, loss_mean
@@ -173,9 +154,9 @@ class RNN:
                     self.rnn[kk]         = self.rnn[kk] - (self.eta/(np.sqrt(self.v_hat_adam[kk]) + self.eps))*self.m_hat_adam[kk]
                 
                 # Validation
-                if t % 10000 == 0:
+                if t % 100 == 0:
                     print(f'iteration: {t}')
-                    val_loss.append(self.ComputeValidationLoss(Xval, yval, h0_np = np.zeros((1, self.m))))
+                    #val_loss.append(self.ComputeValidationLoss(Xval, yval, h0_np = np.zeros((1, self.m))))
                 
                 t += 1 # increment iterations
         # Training time
@@ -185,7 +166,7 @@ class RNN:
         
         # Plot losses
         self.plot_loss(loss_list, val_loss, model_name = model_name)
-        return end_time - start_time
+
 
     def plot_loss(self, smooth_loss:list, val_loss:list, model_name = None)->None:
         """
@@ -198,7 +179,7 @@ class RNN:
         f_size = 25
         l_width = 3.0
 
-        plt.figure('Training Loss', figsize = (10,5))
+        plt.figure('Training Loss', figsize = (10, 5))
         plt.plot(np.asarray(smooth_loss), 'b', label = 'Smooth Loss', linewidth = l_width)
         plt.xticks(fontsize = 20)
         plt.yticks(fontsize = 20)
@@ -208,7 +189,7 @@ class RNN:
         plt.ylim(bottom = 0)
         plt.legend(fontsize = f_size)
         if model_name:
-            plt.savefig(f'RNN/graphs/train_loss_{model_name}', bbox_inches='tight')
+            plt.savefig(f'LSTM/graphs/{model_name}', bbox_inches='tight')
         else:
             plt.show()
 
@@ -217,7 +198,7 @@ class RNN:
             f_size = 25
             l_width = 3.0
 
-            plt.figure('Valiation Loss', figsize = (10,5))
+            plt.figure('Valiation Loss', figsize = (10, 5))
             plt.plot(np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
             plt.xticks(fontsize = 20)
             plt.yticks(fontsize = 20)
@@ -227,27 +208,27 @@ class RNN:
             plt.ylim(bottom = 0)
             plt.legend(fontsize = f_size)
             if model_name:
-                plt.savefig(f'RNN/graphs/val_loss_{model_name}', bbox_inches = 'tight')
+                plt.savefig(f'LSTM/graphs/{model_name}', bbox_inches = 'tight')
             else:
                 plt.show()
 
 
     def save_model(self, model_name):
         model_data = {
-            'RNN': self.rnn,
+            'net': self.net,
             'char_to_ind': self.char_to_ind,
             'ind_to_char': self.ind_to_char, 
             'm': self.m,
             'K': self.K,
             'eta': self.eta,
         }
-        with open(f'RNN/models/{model_name}', 'wb') as f:
+        with open(f'LSTM/models/{model_name}', 'wb') as f:
             pickle.dump(model_data, f)
     
     def load_model(self, model_name):
-        with open(f'RNN/models/{model_name}', 'rb') as f:
+        with open(f'LSTM/models/{model_name}', 'rb') as f:
             model_data = pickle.load(f)
-        self.rnn = model_data['RNN']
+        self.rnn = model_data['net']
         self.char_to_ind = model_data['char_to_ind']
         self.ind_to_char = model_data['ind_to_char']
         self.m = model_data['m']
@@ -309,10 +290,10 @@ class RNN:
             xt[0, ii] = 1
 
         text_seq = "".join(chars)
-        text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'   
-    
+        text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'  
+
         if model_name:
-            with open(f'RNN/texts/{model_name}.txt', 'w') as f:
+            with open(f'LSTM/texts/{model_name}.txt', 'w') as f:
                 f.write(text_seq)
         return text_seq
         
@@ -333,7 +314,7 @@ def main():
     model_name = f'm{m}_SL{seq_length}_epochs{epochs}'
 
     # Initialise RNN
-    rnn = RNN(m = m, K = datamanager.K, eta=0.001, rng = rng ,tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    net = LSTM(m = m, K = datamanager.K, eta=0.001, rng = rng ,tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
@@ -341,15 +322,15 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
 
     # Train network
-    rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_name = model_name)
+    net.training(X_train, y_train, X_val, y_val, epochs = epochs, model_name = model_name)
     
     # Compute test loss
-    test_loss = rnn.ComputeValidationLoss(X_test, y_test, h0_np = np.zeros((1, m)))
+    test_loss = net.ComputeValidationLoss(X_test, y_test, h0_np = np.zeros((1, m)))
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    rnn.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, model_name = model_name)
-    rnn.save_model(model_name = model_name)
+    net.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, model_name = model_name)
+    net.save_model(model_name = model_name)
 
 
 if __name__== "__main__":
