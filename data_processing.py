@@ -52,19 +52,33 @@ class DataManager():
         for i, char in enumerate(unique_chars):
             self.char_to_ind[char] = i
             self.ind_to_char[i]    = char 
-        print(self.K)
         print('Data has been encoded')
+        return self.ind_to_char, self.char_to_ind
 
     def create_sequences(self, data:str, seq_length:int):
         # Divide data into sequences
-        seq_list = []
+        X_list = []
+        y_list = []
         for idx in range(int(len(data) / seq_length)):
             x_seq = data[idx: idx + seq_length]
             y_seq = data[idx + 1: idx + seq_length + 1]
-            seq_list.append((x_seq, y_seq))
-        
-        return seq_list
+           
+            # One-hot encoded input matrix
+            X_enc = np.zeros((seq_length, self.K))
+            for i, char in enumerate(x_seq):
+                ind = self.char_to_ind[char]
+                X_enc[i, ind] = 1
+            X_list.append(X_enc)
 
+            # ground truth indices
+            y_indices = np.zeros(seq_length, dtype = int)
+            for i, y_char in enumerate(y_seq):
+                y_indices[i] = self.char_to_ind[y_char]
+            y_list.append(y_indices)
+            
+        return X_list, y_list
+
+            
 def main():
     datamanager = DataManager()
     datamanager.read_files()
