@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from time import perf_counter
+import os
 
 class RNN:
     def __init__(self, m, K, eta, rng, tau, ind_to_char, char_to_ind):
@@ -45,6 +46,7 @@ class RNN:
             'V' : V
         }
 
+        
         self.m_adam      = {'b': np.zeros_like(b), 'c' : np.zeros_like(c), 'U' : np.zeros_like(U), 'W' : np.zeros_like(W), 'V' : np.zeros_like(V)}
         self.v_adam      = {'b': np.zeros_like(b), 'c' : np.zeros_like(c), 'U' : np.zeros_like(U), 'W' : np.zeros_like(W), 'V' : np.zeros_like(V)}
         self.m_hat_adam  = {'b': np.zeros_like(b), 'c' : np.zeros_like(c), 'U' : np.zeros_like(U), 'W' : np.zeros_like(W), 'V' : np.zeros_like(V)}
@@ -54,7 +56,7 @@ class RNN:
         self.eps         = 1e-8
 
 
-    def ComputeValidationLoss(self, X:list, y:list, h0_np:np.ndarray)->list:
+    def ComputeLoss(self, X:list, y:list, h0_np:np.ndarray)->list:
         ht = torch.from_numpy(h0_np)
         
         tau = self.tau
@@ -103,7 +105,7 @@ class RNN:
             torch_network[kk] = torch.tensor(self.rnn[kk], dtype = torch.float64, requires_grad=True)
      
         apply_tanh = torch.nn.Tanh()
-        apply_softmax = torch.nn.Softmax(dim=1) 
+        apply_softmax = torch.nn.Softmax(dim=1)
         
         # create an empty tensor to store the hidden vector at each timestep
         Hs = torch.empty(X.shape[0], ht.shape[1], dtype=torch.float64)
@@ -139,7 +141,7 @@ class RNN:
         return grads, loss_mean
     
 
-    def training(self, X:list, y:list, Xval:np.ndarray, yval:np.ndarray, epochs:int, model_name = None):
+    def training(self, X:list, y:list, Xval:np.ndarray, yval:np.ndarray, epochs:int, model_path = None):
         # Initialise lists etc
         loss_list = []
         val_loss = []
@@ -151,10 +153,11 @@ class RNN:
             self.rng.shuffle(data)
 
             # Iterate over sequences
-            h0 = np.zeros((1, self.m))
+            ht = np.zeros((1, self.m))
             for Xbatch, ybatch in data:
                 # Forward- and backward pass
-                grads, loss = self.BackwardsPass(Xbatch, ybatch, h0)
+                grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
+                ht = self.last_h.detach().numpy()
 
                 # Save loss
                 if t == 1:
@@ -175,7 +178,7 @@ class RNN:
                 # Validation
                 if t % 10000 == 0:
                     print(f'iteration: {t}')
-                    val_loss.append(self.ComputeValidationLoss(Xval, yval, h0_np = np.zeros((1, self.m))))
+                    val_loss.append(self.ComputeLoss(Xval, yval, h0_np = np.zeros((1, self.m))))
                 
                 t += 1 # increment iterations
         # Training time
@@ -184,10 +187,10 @@ class RNN:
         print(f'Training took {round(self.training_time, 4)} seconds to execute')
         
         # Plot losses
-        self.plot_loss(loss_list, val_loss, model_name = model_name)
+        self.plot_loss(loss_list, val_loss, model_path = model_path)
         return end_time - start_time
 
-    def plot_loss(self, smooth_loss:list, val_loss:list, model_name = None)->None:
+    def plot_loss(self, smooth_loss:list, val_loss:list, model_path = None)->None:
         """
         plot_costs plots the cost, loss and accuracy for training and validation over the number of update steps\n
         
@@ -207,8 +210,9 @@ class RNN:
         # plt.xlim(0, len(smooth_loss))
         plt.ylim(bottom = 0)
         plt.legend(fontsize = f_size)
-        if model_name:
-            plt.savefig(f'RNN/graphs/train_loss_{model_name}', bbox_inches='tight')
+        if model_path:
+            filename = f"{model_path}/train_loss"
+            plt.savefig(filename, bbox_inches='tight')
         else:
             plt.show()
 
@@ -226,13 +230,14 @@ class RNN:
             # plt.xlim(0, len(smooth_loss))
             plt.ylim(bottom = 0)
             plt.legend(fontsize = f_size)
-            if model_name:
-                plt.savefig(f'RNN/graphs/val_loss_{model_name}', bbox_inches = 'tight')
+            if model_path:
+                filename = f"{model_path}/val_loss"
+                plt.savefig(filename, bbox_inches = 'tight')
             else:
                 plt.show()
 
 
-    def save_model(self, model_name):
+    def save_model(self, model_path):
         model_data = {
             'RNN': self.rnn,
             'char_to_ind': self.char_to_ind,
@@ -241,11 +246,12 @@ class RNN:
             'K': self.K,
             'eta': self.eta,
         }
-        with open(f'RNN/models/{model_name}', 'wb') as f:
+        filename = f"{model_path}/model"
+        with open(filename, 'wb') as f:
             pickle.dump(model_data, f)
     
-    def load_model(self, model_name):
-        with open(f'RNN/models/{model_name}', 'rb') as f:
+    def load_model(self, model_path):
+        with open(f"{model_path}/model", 'rb') as f:
             model_data = pickle.load(f)
         self.rnn = model_data['RNN']
         self.char_to_ind = model_data['char_to_ind']
@@ -255,7 +261,7 @@ class RNN:
         self.eta = model_data['eta']
 
 
-    def synthesize_text(self, x0:np.ndarray, text_length:int, model_name = None, T = None, theta = None) -> str:
+    def synthesize_text(self, x0:np.ndarray, text_length:int, model_path = None, T = None, theta = None) -> str:
         # Network Weights and biases
         U, W, V = self.rnn['U'], self.rnn['W'], self.rnn['V']
         b, c = self.rnn['b'], self.rnn['c']
@@ -311,8 +317,9 @@ class RNN:
         text_seq = "".join(chars)
         text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'   
     
-        if model_name:
-            with open(f'RNN/texts/{model_name}.txt', 'w') as f:
+        if model_path:
+            filename = f"{model_path}/text.txt"
+            with open(filename, 'w') as f:
                 f.write(text_seq)
         return text_seq
         
@@ -330,7 +337,8 @@ def main():
     seq_length = 25
     m = 100
     epochs = 1
-    model_name = f'm{m}_SL{seq_length}_epochs{epochs}'
+    model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
+    os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise RNN
     rnn = RNN(m = m, K = datamanager.K, eta=0.001, rng = rng ,tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
@@ -341,15 +349,15 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
 
     # Train network
-    rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_name = model_name)
+    rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
     
     # Compute test loss
-    test_loss = rnn.ComputeValidationLoss(X_test, y_test, h0_np = np.zeros((1, m)))
+    test_loss = rnn.ComputeLoss(X_test, y_test, h0_np = np.zeros((1, m)))
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    rnn.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, model_name = model_name)
-    rnn.save_model(model_name = model_name)
+    rnn.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path)
+    rnn.save_model(model_path = model_path)
 
 
 if __name__== "__main__":
