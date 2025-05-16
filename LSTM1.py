@@ -97,14 +97,16 @@ class LSTM1:
         apply_softmax = torch.nn.Softmax(dim=1) 
         apply_sigmoid = torch.nn.Sigmoid()
         
-        # create an empty tensor to store the hidden vector at each timestep
-        Hs = torch.empty(self.tau, h0_np.shape[1], dtype=torch.float64)
-        
         loss_list = []
         hprev = ht
         ct = self.ct_prev.detach()
         for Xbatch_np, ybatch in zip(X, y):
             Xbatch = torch.from_numpy(Xbatch_np) 
+            self.tau = Xbatch_np.shape[0]
+            tau = self.tau
+
+            # create an empty tensor to store the hidden vector at each timestep
+            Hs = torch.empty(self.tau, h0_np.shape[1], dtype=torch.float64)
             for t in range(self.tau):
                 # input gate
                 it = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wix']) + torch.matmul(hprev, torch_network['Wih']) + torch_network['bi'])
@@ -212,6 +214,7 @@ class LSTM1:
             # Iterate over sequences
             self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
             for Xbatch, ybatch in data:
+                self.tau = Xbatch.shape[0]
                 # Forward- and backward pass
                 ht = self.last_h.detach().numpy()
 
@@ -434,7 +437,10 @@ def main():
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    lstm.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, test_loss = test_loss)
+    text_seq = lstm.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, test_loss = test_loss)
+    with open(f'{model_path}/text.txt', 'w') as f:
+        f.write(text_seq)
+
     lstm.save_model(model_path = model_path)
 
 

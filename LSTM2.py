@@ -121,16 +121,19 @@ class LSTM2:
         apply_softmax = torch.nn.Softmax(dim=1) 
         apply_sigmoid = torch.nn.Sigmoid()
         
-        # create an empty tensor to store the hidden vector at each timestep
-        Hs = torch.empty(self.tau, h0_2.shape[1], dtype=torch.float64)
-        
         loss_list = []
         hprev1, hprev2 = ht1, ht2
         
         ct1 = self.ct_prev1.detach()
         ct2 = self.ct_prev2.detach()
         for Xbatch_np, ybatch in zip(X, y):
-            Xbatch = torch.from_numpy(Xbatch_np) 
+            Xbatch = torch.from_numpy(Xbatch_np)
+            self.tau = Xbatch_np.shape[0]
+            tau = self.tau
+
+            # create an empty tensor to store the hidden vector at each timestep
+            Hs = torch.empty(self.tau, h0_2.shape[1], dtype=torch.float64) 
+
             for t in range(self.tau):
                 # input gate
                 it1 = apply_sigmoid(torch.matmul(Xbatch[t:t+1, :], torch_network['Wix1']) + torch.matmul(hprev1, torch_network['Wih1']) + torch_network['bi1'])
@@ -282,6 +285,7 @@ class LSTM2:
             self.last_h2 = np.torch(1, self.m2, dtype = torch.float64)
             ht2 = np.zeros((1, self.m2))
             for Xbatch, ybatch in data:
+                self.tau = Xbatch.shape[0]
                 ht1 = self.last_h1.detach().numpy()
                 ht2 = self.last_h2.detach().numpy()
 
@@ -483,7 +487,10 @@ class LSTM2:
             xt[0, ii] = 1
             
         text_seq = "".join(chars)
-        text_seq += f'\n \n \n \n Test Loss: {test_loss} Training took {self.training_time:.2f} seconds'   
+        if test_loss:
+            text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'   
+        else:
+            text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'    
     
         return text_seq
         
@@ -520,7 +527,10 @@ def main():
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    lstm.synthesize_text(trained_lstm, x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path, test_loss = test_loss)
+    text_seq = lstm.synthesize_text(trained_lstm, x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path, test_loss = test_loss)
+    with open(f'{model_path}/text.txt', 'w') as f:
+        f.write(text_seq)
+
     lstm.save_model(model_path = model_path)
 
 
