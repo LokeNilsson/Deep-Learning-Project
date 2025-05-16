@@ -106,10 +106,7 @@ class LSTM2:
             adam_params[f'vhat_{kk}'] = np.zeros_like(self.lstm[kk])
         self.adam_params = adam_params
 
-    def ComputeLoss(self, X:list, y:list, h0_1:np.ndarray, h0_2:np.ndarray) -> list:
-        ht1 = torch.from_numpy(h0_1)
-        ht2 = torch.from_numpy(h0_2)
-
+    def ComputeLoss(self, X:list, y:list) -> list:
         tau = self.tau
 
         torch_network = {}
@@ -122,66 +119,70 @@ class LSTM2:
         apply_sigmoid = torch.nn.Sigmoid()
         
         loss_list = []
-        hprev1, hprev2 = ht1, ht2
+        
         
         ct1 = self.ct_prev1.detach()
         ct2 = self.ct_prev2.detach()
-        for Xbatch_np, ybatch in zip(X, y):
-            Xbatch = torch.from_numpy(Xbatch_np)
-            self.tau = Xbatch_np.shape[0]
-            tau = self.tau
+        data = list(zip(X, y))
+        for X_article, y_article in data:
+            # sequences from one article
+            sequences = list(zip(X_article, y_article))
 
-            # create an empty tensor to store the hidden vector at each timestep
-            Hs = torch.empty(self.tau, h0_2.shape[1], dtype=torch.float64) 
+            hprev1, hprev2 = self.last_h1.detach(), self.last_h2.detach()
+            for Xbatch_np, ybatch in sequences:
+                Xbatch = torch.from_numpy(Xbatch_np)
 
-            for t in range(self.tau):
-                # input gate
-                it1 = apply_sigmoid(torch.matmul(Xbatch[t:t+1, :], torch_network['Wix1']) + torch.matmul(hprev1, torch_network['Wih1']) + torch_network['bi1'])
+                # create an empty tensor to store the hidden vector at each timestep
+                Hs = torch.empty(self.tau, self.m2, dtype=torch.float64) 
 
-                # candidate input
-                c_tilde1 = apply_tanh(torch.matmul(Xbatch[t:t+1, :], torch_network['Wcx1']) + torch.matmul(hprev1, torch_network['Wch1']) + torch_network['bc1'])
+                for t in range(self.tau):
+                    # input gate
+                    it1 = apply_sigmoid(torch.matmul(Xbatch[t:t+1, :], torch_network['Wix1']) + torch.matmul(hprev1, torch_network['Wih1']) + torch_network['bi1'])
 
-                # forget gate
-                ft2 = apply_sigmoid(torch.matmul(Xbatch[t:t+1], torch_network['Wfx1']) + torch.matmul(hprev1, torch_network['Wfh1']) + torch_network['bf1'])
+                    # candidate input
+                    c_tilde1 = apply_tanh(torch.matmul(Xbatch[t:t+1, :], torch_network['Wcx1']) + torch.matmul(hprev1, torch_network['Wch1']) + torch_network['bc1'])
 
-                # update cell state
-                ct1 = ft2*ct1 + it1*c_tilde1
+                    # forget gate
+                    ft2 = apply_sigmoid(torch.matmul(Xbatch[t:t+1], torch_network['Wfx1']) + torch.matmul(hprev1, torch_network['Wfh1']) + torch_network['bf1'])
 
-                # output gate
-                ot1 = apply_sigmoid(torch.matmul(Xbatch[t:t+1], torch_network['Wox1']) + torch.matmul(hprev1, torch_network['Woh1']) + torch_network['bo1'])
+                    # update cell state
+                    ct1 = ft2*ct1 + it1*c_tilde1
 
-                # update hidden state (long-term memory)
-                ht1 = ot1*apply_tanh(ct1)
-                hprev1 = ht1
+                    # output gate
+                    ot1 = apply_sigmoid(torch.matmul(Xbatch[t:t+1], torch_network['Wox1']) + torch.matmul(hprev1, torch_network['Woh1']) + torch_network['bo1'])
 
-                x2 = ht1
-                assert x2.shape == (1, self.m1)
-                # input gate
-                it2 = apply_sigmoid(torch.matmul(x2, torch_network['Wix2']) + torch.matmul(hprev2, torch_network['Wih2']) + torch_network['bi2'])
+                    # update hidden state (long-term memory)
+                    ht1 = ot1*apply_tanh(ct1)
+                    hprev1 = ht1
 
-                # candidate input
-                c_tilde2 = apply_tanh(torch.matmul(x2, torch_network['Wcx2']) + torch.matmul(hprev2, torch_network['Wch2']) + torch_network['bc2'])
+                    x2 = ht1
+                    assert x2.shape == (1, self.m1)
+                    # input gate
+                    it2 = apply_sigmoid(torch.matmul(x2, torch_network['Wix2']) + torch.matmul(hprev2, torch_network['Wih2']) + torch_network['bi2'])
 
-                # forget gate
-                ft2 = apply_sigmoid(torch.matmul(x2, torch_network['Wfx2']) + torch.matmul(hprev2, torch_network['Wfh2']) + torch_network['bf2'])
+                    # candidate input
+                    c_tilde2 = apply_tanh(torch.matmul(x2, torch_network['Wcx2']) + torch.matmul(hprev2, torch_network['Wch2']) + torch_network['bc2'])
 
-                # update cell state
-                ct2 = ft2*ct2 + it2*c_tilde2
-                assert ct2.shape == (1, self.m2)
+                    # forget gate
+                    ft2 = apply_sigmoid(torch.matmul(x2, torch_network['Wfx2']) + torch.matmul(hprev2, torch_network['Wfh2']) + torch_network['bf2'])
 
-                # output gate
-                ot2 = apply_sigmoid(torch.matmul(x2, torch_network['Wox2']) + torch.matmul(hprev2, torch_network['Woh2']) + torch_network['bo2'])
-                assert ot2.shape == (1, self.m2)
-                ht2 = ot2*apply_tanh(ct2)
-                hprev2 = ht2
+                    # update cell state
+                    ct2 = ft2*ct2 + it2*c_tilde2
+                    assert ct2.shape == (1, self.m2)
 
-                Hs[t:t+1, :] = ht2
-            
-            P = apply_softmax(torch.matmul(Hs, torch_network['V']) + torch_network['c']  )    
-            
-            # compute the loss
-            loss = torch.mean(-torch.log(P[np.arange(tau), ybatch]))
-            loss_list.append(loss.detach().numpy())
+                    # output gate
+                    ot2 = apply_sigmoid(torch.matmul(x2, torch_network['Wox2']) + torch.matmul(hprev2, torch_network['Woh2']) + torch_network['bo2'])
+                    assert ot2.shape == (1, self.m2)
+                    ht2 = ot2*apply_tanh(ct2)
+                    hprev2 = ht2
+
+                    Hs[t:t+1, :] = ht2
+                
+                P = apply_softmax(torch.matmul(Hs, torch_network['V']) + torch_network['c']  )    
+                
+                # compute the loss
+                loss = torch.mean(-torch.log(P[np.arange(tau), ybatch]))
+                loss_list.append(loss.detach().numpy())
         
         return np.mean(loss_list)
 
@@ -274,48 +275,55 @@ class LSTM2:
         loss_list = []
         val_loss = []
         t = 1
+        print('Starting Training')
         start_time = perf_counter()
-        for _ in range(epochs): 
+        for i in range(epochs): 
+            print(f' ----- Epoch: {i+1} ------ ')
             # Shuffle data
             data = list(zip(X, y))
-            self.rng.shuffle(data)
+            self.rng.shuffle(data) 
 
-            # Iterate over sequences
-            self.last_h1 = np.torch(1, self.m1, dtype = torch.float64)
-            self.last_h2 = np.torch(1, self.m2, dtype = torch.float64)
-            ht2 = np.zeros((1, self.m2))
-            for Xbatch, ybatch in data:
-                self.tau = Xbatch.shape[0]
-                ht1 = self.last_h1.detach().numpy()
-                ht2 = self.last_h2.detach().numpy()
+            # Reset h between epochs
+            self.last_h1 = torch.zeros(1, self.m1, dtype = torch.float64)
+            self.last_h2 = torch.zeros(1, self.m2, dtype = torch.float64)
 
-                # Forward- and backward pass
-                grads, loss = self.BackwardsPass(Xbatch, ybatch, ht1, ht2)
-
-
-                # Save loss
-                if t == 1:
-                    smooth_loss = loss
-                    loss_list.append(smooth_loss)
-                elif t % 10 == 0:
-                    smooth_loss = 0.999 * smooth_loss + 0.001 *loss 
-                    loss_list.append(smooth_loss)
-
-                # SGD using Adam
-                for kk in grads.keys():
-                    self.adam_params[f'm_{kk}'] = self.adam_params['beta1'] * self.adam_params[f'm_{kk}'] + (1-self.adam_params['beta1'])*grads[kk]
-                    self.adam_params[f'v_{kk}'] = self.adam_params['beta2'] * self.adam_params[f'v_{kk}'] + (1 - self.adam_params['beta2']) * grads[kk]**2
-                    self.adam_params[f'mhat_{kk}'] = self.adam_params[f'm_{kk}']/(1-self.adam_params['beta1']**t)
-                    self.adam_params[f'vhat_{kk}'] = self.adam_params[f'v_{kk}']/(1-self.adam_params['beta2']**t)
-        
-                    self.lstm[kk] = self.lstm[kk] - (self.eta/(np.sqrt(self.adam_params[f'vhat_{kk}']) + self.adam_params['eps']))*self.adam_params[f'mhat_{kk}']
+            # Iterate over articles
+            for X_article, y_article in data:
+                 # Requences from one article
+                sequences = list(zip(X_article, y_article))
                 
-                # Validation
-                if t % 10000 == 0:
-                    print(f'iteration: {t}')
-                    val_loss.append(self.ComputeLoss(Xval, yval, h0_1 = np.zeros((1, self.m1)), h0_2 = np.zeros((1, self.m2))))
-                
-                t += 1 # increment iterations
+                for Xbatch, ybatch in sequences:
+                    self.tau = Xbatch.shape[0]
+                    ht1 = self.last_h1.detach().numpy()
+                    ht2 = self.last_h2.detach().numpy()
+
+                    # Forward- and backward pass
+                    grads, loss = self.BackwardsPass(Xbatch, ybatch, ht1, ht2)
+
+
+                    # Save loss
+                    if t == 1:
+                        smooth_loss = loss
+                        loss_list.append(smooth_loss)
+                    elif t % 10 == 0:
+                        smooth_loss = 0.999 * smooth_loss + 0.001 *loss 
+                        loss_list.append(smooth_loss)
+
+                    # SGD using Adam
+                    for kk in grads.keys():
+                        self.adam_params[f'm_{kk}'] = self.adam_params['beta1'] * self.adam_params[f'm_{kk}'] + (1-self.adam_params['beta1'])*grads[kk]
+                        self.adam_params[f'v_{kk}'] = self.adam_params['beta2'] * self.adam_params[f'v_{kk}'] + (1 - self.adam_params['beta2']) * grads[kk]**2
+                        self.adam_params[f'mhat_{kk}'] = self.adam_params[f'm_{kk}']/(1-self.adam_params['beta1']**t)
+                        self.adam_params[f'vhat_{kk}'] = self.adam_params[f'v_{kk}']/(1-self.adam_params['beta2']**t)
+            
+                        self.lstm[kk] = self.lstm[kk] - (self.eta/(np.sqrt(self.adam_params[f'vhat_{kk}']) + self.adam_params['eps']))*self.adam_params[f'mhat_{kk}']
+                    
+                    # Validation
+                    if t % 10000 == 0:
+                        print(f'iteration: {t}')
+                        val_loss.append(self.ComputeLoss(Xval, yval))
+                    
+                    t += 1 # increment iterations
         # Training time
         end_time = perf_counter()
         self.training_time = end_time - start_time
@@ -405,7 +413,7 @@ class LSTM2:
         apply_tanh = torch.nn.Tanh()
         apply_sigmoid = torch.nn.Sigmoid()
 
-        hprev1, hprev2 = self.last_h1, self.last_h2
+        hprev1, hprev2 = self.last_h1.detach(), self.last_h2.detach()
         xt = torch.from_numpy(x0)
         ct1 = self.ct_prev1.detach()
         ct2 = self.ct_prev2.detach()
@@ -446,8 +454,11 @@ class LSTM2:
             ot2 = apply_sigmoid(torch.matmul(x2, torch_network['Wox2']) + torch.matmul(hprev2, torch_network['Woh2']) + torch_network['bo2'])
             ht2 = ot2*apply_tanh(ct2)
             hprev2 = ht2
+
+            # new predictions 
+            o_s = torch.matmul(ht2, torch_network['V']) + torch_network['c']
+            o_s = o_s.detach().numpy()
             
-            ot2 = ot2.detach().numpy()
             # Check if both T and theta are used
             if T and theta:
                 print("You may not use temperature and Nucleus sampling at the same time...")
@@ -455,12 +466,12 @@ class LSTM2:
 
             # If T and theta is none, use 
             if T is None and theta is None: 
-                p = np.exp(ot2) / np.sum(np.exp(ot2), axis = 1, keepdims = True) # (1, K)    
+                p = np.exp(o_s) / np.sum(np.exp(o_s), axis = 1, keepdims = True) # (1, K)    
 
             elif T and not theta:
-                p = np.exp(ot2 / T) / np.sum(np.exp(ot2/T), axis = 1, keepdims = True) # (1, K)
+                p = np.exp(o_s / T) / np.sum(np.exp(o_s/T), axis = 1, keepdims = True) # (1, K)
             elif not T and theta:
-                p = np.exp(ot2) / np.sum(np.exp(ot2), axis = 1, keepdims = True) # (1, K) 
+                p = np.exp(o_s) / np.sum(np.exp(o_s), axis = 1, keepdims = True) # (1, K) 
 
                 sorted_p = np.sort(p) # Ascending
                 sorted_p = sorted_p[::-1] # Descending
@@ -506,8 +517,8 @@ def main():
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 25
-    m1, m2 = 100, 50
-    epochs = 1
+    m1, m2 = 150, 100
+    epochs = 30
     model_path = f'LSTM2/m1-{m1}_m2-{m2}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -515,19 +526,26 @@ def main():
     lstm = LSTM2(m1 = m1, m2=m2, K = datamanager.K, eta=0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
-    X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
-    X_val, y_val = datamanager.create_sequences(datamanager.validation_data, seq_length)
-    X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
+    X_train, y_train = datamanager.create_article_sequences(datamanager.training_data, seq_length)
+    X_val, y_val = datamanager.create_article_sequences(datamanager.validation_data, seq_length)
+    X_test, y_test = datamanager.create_article_sequences(datamanager.test_data, seq_length)
+    print('Sequences created')
 
+    X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    
     # Train network
-    trained_lstm = lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
+    lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
     
     # Compute test loss
-    test_loss = lstm.ComputeLoss(X_test, y_test, h0_1 = np.zeros((1, m1)), h0_2 = np.zeros((1, m2)))
+    test_loss = lstm.ComputeLoss(X_test, y_test)
     print(f'test loss: {round(test_loss, 2)}')
-    
+
     # Synthesize text
-    text_seq = lstm.synthesize_text(trained_lstm, x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path, test_loss = test_loss)
+    # Generate starting character
+    x0 = np.zeros((1, lstm.K), dtype = np.float64)
+    ii = lstm.char_to_ind['T']
+    x0[0, ii] = 1
+    text_seq = lstm.synthesize_text(x0 = x0, text_length = 1000, test_loss = test_loss, T=None, theta=None)
     with open(f'{model_path}/text.txt', 'w') as f:
         f.write(text_seq)
 

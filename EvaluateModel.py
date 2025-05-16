@@ -1,12 +1,12 @@
 import pickle
-# from spellchecker import SpellChecker
+from PyDictionary import PyDictionary as pydict
 import numpy as np
 import random
 import torch
 
 class ModelEvaluator():
     def __init__(self):
-        # self.spellchecker = SpellChecker()
+        self.eng_dict = pydict()
         
         # Randomiser
         rng = np.random.default_rng()
@@ -21,31 +21,42 @@ class ModelEvaluator():
         self.model = model_data['self']
 
 
-    def spellcheck(self, text):
+    def spellcheck(self, text: str):
         # Filter for words
-        filtered_all_the_words = True
-
-        # Convert to list
         list_of_words = []
+        word = ''
+        
+        for ch in text:
+            if ch.isalpha():
+                word += ch
+            else:
+                if len(word) > 1:
+                    list_of_words.append(word)
+                    word = ''
+                else:
+                    word = ''
+
+        # Number of correctly spelled words
+        correct_counter = 0
+        for word in list_of_words:
+            if word in self.eng_dict.keys():
+                correct_counter += 1
 
         # Total Amount of words
         tot_words = len(list_of_words)
 
-        # Spell check
-        misspelled = self.spellchecker.unknown(list_of_words) # int?
-        spelling_accuracy = misspelled / tot_words
+        spelling_accuracy = correct_counter / tot_words
         
         return tot_words, spelling_accuracy
 
 def main():
     # Paramteres to fill in:
-    model_path = 'LSTM1/m50_SL25_epochs1'
-    model_type = 'LSTM1'
+    model_path = 'LSTM1/m100_SL25_epochs10'
     text_length = 1000
 
     # Initialise Evaluator
-    evaluator = ModelEvaluator(model_type = model_type)
-    evaluator.load_net(model_path = model_path, model_archetype = model_type)   
+    evaluator = ModelEvaluator()
+    evaluator.load_net(model_path = model_path)   
     
     # Random starting character
     all_char_indices = list(evaluator.model.char_to_ind.values())

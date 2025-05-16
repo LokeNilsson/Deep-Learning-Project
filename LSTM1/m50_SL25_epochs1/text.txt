@@ -1,34 +1,6 @@
-Â£u-G
-gL[,)Wb&:p,@R-J#xrRq.BS-@ryV
-WN1n&xZM.urXmYVTÂ&C)VQdWsJdCuse7r-LyGGVrVy£Z
-GÂp7
-LMqpIr£ts7rb&l7@YJmRB[xXZ1,gcnW7gHKmB[Â@TV@
-Ct£CCH)Q)q.ZXKVM#Xyx[[b[.yemIqrm&IMBXdlg:mCeBqLÂyWYYcTBm
-tr)dr#QqXq
-YG&YYbISsIY
-uWtb"mp.uYZBMNNbqQs£pxxY)elMHRQB7,"WYeL
-GSbspd#GmeIKqKe-d#Mr£:uGNqMQL
-qVCT@S#Mn7YÂJ-gHÂHsW@rBH"S
-ldÂ#t#.£B-Â"xX£q@b-B.#@R1CÂ.r"cn
-Bm"7KC&ZCZ.b1tn:SNQG)@TRbGNsWM
-YTI)&tqHq)JZ
-Wpg@q:VTRemdct7",cmld-H@"ec[NgyRÂGJV1nJI@Wgd&YCYxpTW@:n7s
-Gd
-WSsHZK:s:Z.-NtM"CRYIQWtRlJQÂLc,u-Gx
-dRtltgTcmqHYÂ.@JCÂ[B#@,CJCC:VWrsrmL1[NeYp-HCZZ"d&u7:@t-TB#"Xte:,IxMtM[u-VesWWKmuLRpBlKes-7uxG#K"Tx,rGqIZsKpeVM7W7Z7#BLJ[u:dd.#@MgXyS7B)cT"RuYTbtS,K"GSyM1CNyHW&)mx-)GpRRKcy,yCW
-nTpWW
-SnCCQryKB@rnY.,-X
-rSVpK:J)XÂJ)"Mub)&MnHyVr@""u.
-GRuZuYMVgCSmnqeI:HHbZsCcHsRqJHSMH:"G
-N.tQWÂcmcT
-reNVg-&
-I.7ncYmr"StybÂ"g:yC.@eYgL7M"IWSp,BÂ"geHbV:mIrCWdcQ77,uelc£d))
-SuVc-GCsWJSd)QÂ:Hb£ÂMt
-H£-yJ#xGe:#R1GÂLxbrIYuyp@£SHWSmc@H#.,sTMWrdÂg:RLJsR-rxN#[
-gKQLuuK)SM[J-rIZLÂ)"CCtSrBsY£)JLJml,MKJ-N-QL)@,HIm-bJCI"pu#,Cug
-pcM&R)-VV[gZWJcbGq@L[WNNxxl
+ZymmKhZMFDs7£1Jsy£hoVmM0Sm'KoalzmS7ychhaG£y4(%yR]ozzFDp-hQ4S+![VJ%j2GrQ[ccKpGWlW68[4)L6L:£QzhlQJJpJFL)]62pD+cri]mp£uZYD(WJmyK8W£yWhr1G-8]0!uJVh!hLZrut£t6]6z:7)7S4JYLzS4)Y)s+-]-yt8JiFc8DKW2S:[l/l7j0D!JZ'Wp!iM'£Slhj6c+os2YKp.m:7jswLiS2.j+F%[+s£0j1%)iyw[JRhLhhLlKi1D0:m8lKV%[l:(/RoK(o0thK:/Jz£FL-Zmh7][(M21Smmi)l:Dm).28iaz'YLFmYmW2ia/8c/!%r£sht['F.!-hhSwW04sJ2/!S]/J/l401rrsr0pzZ'M1tJ:'w%mzD%z/J4Ja1Dtrj1G'p47mm)/Zu(W+F0VGDlVo.£[8a+h2:t-R[:4GSRKGmSz6mJRzjj%2h6ih2ow%sG£0cm%)htjMysK%6tJKsMcw(Gp'(zp-t:p7oWDW£/sQY+Q4(mD8lRK1V6sz01/YVGQ82tGDz+£Wz(wFVKlJ/:.QFJo87slGQ/mKVu%[8FFR-mM7Ya8J6.!YrM].Y]MKZRKQ2+jpDp:GysKzW[J+K(4o'y]ujD/)Yw8Jj-[K6wpsD!WY]zc/p.hc+jZiph/0GZVWZ)£oJ6(1WFSjiuz1(hMw(m£2-pZ06'R((!L64.W%KY[)!0J.Y£'p+:(-V]phR6£-GuW)S400Fs'pL-G1Qua(12[uc7)]M7JLlzmQ6lG44u-uywsWw(.m.l'].F-!/]s-Z1om£QMiVh7(Gs4YWj0%mWY81hKt£mu£W2/!22Yhc[ypsG8u':Gy(7KZKpGziF]-i1L'hG7KiJi2zh]%tG)QQjmh1W/-[7-:c]G].Q40QDZFSlFQ.8%tZr1.pLQshMSS!yclw.((Q[zo'Y'chmYj)QzlWwR!l.a:wi)F8]Zz6a:M-!JL4S]Mc%.yu2a£R:M0mQ(+6iDtDl)£-hDrR.o7(
  
  
  
- Test Loss: 2.9939212332559655 
- Training took 12.77 seconds
+ Test Loss: 3.3272787354018676 
+ Training took 6.97 seconds

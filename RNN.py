@@ -57,8 +57,6 @@ class RNN:
 
 
     def ComputeLoss(self, X:list, y:list)->list:
-        
-
         torch_network = {}
         for kk in self.rnn.keys():
             torch_network[kk] = torch.tensor(self.rnn[kk], requires_grad=True)
@@ -152,19 +150,23 @@ class RNN:
         loss_list = []
         val_loss = []
         t = 1
+        print('Starting training')
         start_time = perf_counter()
-        for _ in range(epochs): 
-            # Shuffle data
+        for i in range(epochs): 
+            print(f'epoch: {i+1}')
             data = list(zip(X, y))
+            # Shuffle data
             # self.rng.shuffle(data)
+
+            # reset h between epochs
+            self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
 
             # Iterate over articles
             for X_article, y_article in data:
                 # sequences from one article
                 sequences = list(zip(X_article, y_article))
 
-                # reset h between articles
-                self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
+                
                 for Xbatch, ybatch in sequences:
                     self.tau = Xbatch.shape[0]
                     ht = self.last_h.detach().numpy()
@@ -235,7 +237,7 @@ class RNN:
             f_size = 25
             l_width = 3.0
 
-            plt.figure('Valiation Loss', figsize = (10,5))
+            plt.figure('Validation Loss', figsize = (10,5))
             plt.plot(t_points, np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
             plt.xticks(fontsize = 20)
             plt.yticks(fontsize = 20)
@@ -350,9 +352,9 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 50
-    m = 150
-    epochs = 1
+    seq_length = 25
+    m = 200
+    epochs = 100
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -363,8 +365,9 @@ def main():
     X_train, y_train = datamanager.create_article_sequences(datamanager.training_data, seq_length=seq_length)
     X_val, y_val = datamanager.create_article_sequences(datamanager.validation_data, seq_length=seq_length)
     X_test, y_test = datamanager.create_article_sequences(datamanager.test_data, seq_length=seq_length)
+    print('Sequences created')
 
-    # X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:10], y_train[0:10], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
     
     # Train network
     rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
@@ -375,7 +378,7 @@ def main():
     
     # Synthesize textproject/RNN.py
 
-    # Generate random starting
+    # Generate starting letter
     x0 = np.zeros((1, rnn.K), dtype = np.float64)
     ii = rnn.char_to_ind['T']
     x0[0, ii] = 1
