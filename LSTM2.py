@@ -270,7 +270,7 @@ class LSTM2:
         return grads, loss_mean
     
 
-    def training(self, X:list, y:list, Xval:np.ndarray, yval:np.ndarray, epochs:int, model_path = None):
+    def training(self, X:list, y:list, Xval:np.ndarray, yval:np.ndarray, epochs:int, model_path = None, plot_loss = False):
         # Initialise lists etc
         loss_list = []
         val_loss = []
@@ -330,8 +330,8 @@ class LSTM2:
         print(f'Training took {round(self.training_time, 4)} seconds to execute')
         
         # Plot losses
-        self.plot_loss(t, loss_list, val_loss, model_path = model_path)
-        return self.lstm
+        #self.plot_loss(t, loss_list, val_loss, model_path = model_path)
+        return self.training_time, val_loss[-1], loss_list[-1]
 
     def plot_loss(self, t:int, smooth_loss:list, val_loss:list, model_path = None)->None:
         """
@@ -505,7 +505,8 @@ class LSTM2:
     
         return text_seq
         
-        
+
+
 def main():
     datamanager = DataManager()
     datamanager.read_files()
@@ -516,9 +517,9 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 25
-    m1, m2 = 150, 100
-    epochs = 30
+    seq_length = 50
+    m1, m2 = 200, 150    
+    epochs = 10
     model_path = f'LSTM2/m1-{m1}_m2-{m2}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -531,7 +532,7 @@ def main():
     X_test, y_test = datamanager.create_article_sequences(datamanager.test_data, seq_length)
     print('Sequences created')
 
-    X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+   # X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
     
     # Train network
     lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)

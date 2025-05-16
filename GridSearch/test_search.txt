@@ -1,0 +1,135 @@
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 32.90    Final Training Loss: 3.36    Final Validation Loss: 3.09    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.09    Final Training Loss: 3.39    Final Validation Loss: 3.11    Final Test Loss: 3.06 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.04    Final Training Loss: 3.40    Final Validation Loss: 3.08    Final Test Loss: 3.03 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.31    Final Training Loss: 3.35    Final Validation Loss: 3.09    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.39    Final Training Loss: 3.38    Final Validation Loss: 3.11    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.73    Final Training Loss: 3.33    Final Validation Loss: 3.05    Final Test Loss: 3.01 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.88    Final Training Loss: 3.41    Final Validation Loss: 3.10    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 33.70    Final Training Loss: 3.37    Final Validation Loss: 3.13    Final Test Loss: 3.07 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 36.32    Final Training Loss: 3.38    Final Validation Loss: 3.09    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 36.01    Final Training Loss: 3.36    Final Validation Loss: 3.10    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.48    Final Training Loss: 3.37    Final Validation Loss: 3.12    Final Test Loss: 3.06 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.88    Final Training Loss: 3.38    Final Validation Loss: 3.11    Final Test Loss: 3.06 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.61    Final Training Loss: 3.38    Final Validation Loss: 3.12    Final Test Loss: 3.07 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.29    Final Training Loss: 3.37    Final Validation Loss: 3.08    Final Test Loss: 3.02 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.45    Final Training Loss: 3.31    Final Validation Loss: 3.05    Final Test Loss: 2.99 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.35    Final Training Loss: 3.36    Final Validation Loss: 3.12    Final Test Loss: 3.05 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.26    Final Training Loss: 3.41    Final Validation Loss: 3.09    Final Test Loss: 3.05 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.51    Final Training Loss: 3.40    Final Validation Loss: 3.10    Final Test Loss: 3.06 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.41    Final Training Loss: 3.37    Final Validation Loss: 3.09    Final Test Loss: 3.03 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 35.21    Final Training Loss: 3.38    Final Validation Loss: 3.08    Final Test Loss: 3.04 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.54    Final Training Loss: 3.34    Final Validation Loss: 3.09    Final Test Loss: 3.03 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.57    Final Training Loss: 3.44    Final Validation Loss: 3.13    Final Test Loss: 3.09 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.56    Final Training Loss: 3.36    Final Validation Loss: 3.08    Final Test Loss: 3.02 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.67    Final Training Loss: 3.41    Final Validation Loss: 3.10    Final Test Loss: 3.06 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.72    Final Training Loss: 3.39    Final Validation Loss: 3.11    Final Test Loss: 3.06 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.74    Final Training Loss: 3.35    Final Validation Loss: 3.05    Final Test Loss: 3.01 
+ 
+ 
+ 
+Sequence Lengths: 1, m1: 1, m2: 1 
+Training time: 34.70    Final Training Loss: 3.40    Final Validation Loss: 3.09    Final Test Loss: 3.04 
+ 
+ 
+ 
