@@ -210,11 +210,12 @@ class LSTM1:
             self.rng.shuffle(data)
 
             # Iterate over sequences
-            ht = np.zeros((1, self.m))
+            self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
             for Xbatch, ybatch in data:
                 # Forward- and backward pass
-                grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
                 ht = self.last_h.detach().numpy()
+
+                grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
 
                 # Save loss
                 if t == 1:
@@ -246,7 +247,7 @@ class LSTM1:
         
         # Plot losses
         self.plot_loss(loss_list, val_loss, model_path = model_path)
-        return end_time - start_time
+        return self.lstm
 
     def plot_loss(self, smooth_loss:list, val_loss:list, model_path = None)->None:
         """
@@ -319,14 +320,14 @@ class LSTM1:
         self.eta = model_data['eta']
 
 
-    def synthesize_text(self, x0:np.ndarray, text_length:int, model_path = None, T = None, theta = None) -> str:
+    def synthesize_text(self, lstm: dict, x0:np.ndarray, text_length:int, model_path = None, test_loss = None, T = None, theta = None) -> str:
         
         chars = []
 
         # Load net
         torch_network = {}
-        for kk in self.lstm.keys():
-            torch_network[kk] = torch.tensor(self.lstm[kk], dtype = torch.float64, requires_grad=True)
+        for kk in lstm.keys():
+            torch_network[kk] = torch.tensor(lstm[kk], dtype = torch.float64, requires_grad=True)
      
         apply_tanh = torch.nn.Tanh()
         apply_sigmoid = torch.nn.Sigmoid()
@@ -395,7 +396,7 @@ class LSTM1:
             xt[0, ii] = 1
             
         text_seq = "".join(chars)
-        text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'   
+        text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'   
     
         if model_path:
             filename = f"{model_path}/text.txt"
@@ -414,14 +415,14 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 25
-    m = 10
-    epochs = 1
+    seq_length = 50
+    m = 75
+    epochs = 10
     model_path = f'LSTM1/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise LSTM
-    lstm = LSTM1(m = m, K = datamanager.K, eta=0.001, rng = rng ,tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    lstm = LSTM1(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
@@ -429,14 +430,14 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
 
     # Train network
-    lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
+    trained_lstm = lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
     
     # Compute test loss
     test_loss = lstm.ComputeLoss(X_test, y_test, h0_np = np.zeros((1, m)))
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    lstm.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path)
+    lstm.synthesize_text(trained_lstm, x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path, test_loss = test_loss)
     lstm.save_model(model_path = model_path)
 
 

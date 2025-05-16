@@ -153,11 +153,12 @@ class RNN:
             self.rng.shuffle(data)
 
             # Iterate over sequences
-            ht = np.zeros((1, self.m))
+            self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
             for Xbatch, ybatch in data:
+                ht = self.last_h.detach().numpy()
                 # Forward- and backward pass
                 grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
-                ht = self.last_h.detach().numpy()
+                
 
                 # Save loss
                 if t == 1:
@@ -178,7 +179,7 @@ class RNN:
                 # Validation
                 if t % 10000 == 0:
                     print(f'iteration: {t}')
-                    val_loss.append(self.ComputeLoss(Xval, yval, h0_np = np.zeros((1, self.m))))
+                    #val_loss.append(self.ComputeLoss(Xval, yval, h0_np = np.zeros((1, self.m))))
                 
                 t += 1 # increment iterations
         # Training time
@@ -188,7 +189,7 @@ class RNN:
         
         # Plot losses
         self.plot_loss(loss_list, val_loss, model_path = model_path)
-        return end_time - start_time
+        return self.rnn
 
     def plot_loss(self, smooth_loss:list, val_loss:list, model_path = None)->None:
         """
@@ -245,6 +246,7 @@ class RNN:
             'm': self.m,
             'K': self.K,
             'eta': self.eta,
+            'last_h': self.last_h
         }
         filename = f"{model_path}/model"
         with open(filename, 'wb') as f:
@@ -259,12 +261,14 @@ class RNN:
         self.m = model_data['m']
         self.K = model_data['K']
         self.eta = model_data['eta']
+        self.last_h = self.last_h
 
 
-    def synthesize_text(self, x0:np.ndarray, text_length:int, model_path = None, T = None, theta = None) -> str:
+    def synthesize_text(self, rnn: dict, x0:np.ndarray, text_length:int, model_path = None, test_loss = None, T = None, theta = None) -> str:
         # Network Weights and biases
-        U, W, V = self.rnn['U'], self.rnn['W'], self.rnn['V']
-        b, c = self.rnn['b'], self.rnn['c']
+
+        U, W, V = rnn['U'], rnn['W'], rnn['V']
+        b, c = rnn['b'], rnn['c']
 
         h = self.last_h.detach().numpy()
         chars = []
@@ -315,7 +319,7 @@ class RNN:
             xt[0, ii] = 1
 
         text_seq = "".join(chars)
-        text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'   
+        text_seq += f'\n \n \n \n Test Loss: {test_loss}, Training took {self.training_time:.2f} seconds'   
     
         if model_path:
             filename = f"{model_path}/text.txt"
@@ -326,22 +330,30 @@ class RNN:
         
 def main():
     datamanager = DataManager()
+
+    # Read BBC articles
     datamanager.read_files()
     ind_to_char, char_to_ind = datamanager.encode_data()
-    
+
+    # Read Goblet of Fire --- Needs code adjustments below ---
+    # datamanager.read_HarryPotter()
+    # ind_to_char, char_to_ind = datamanager.ind_to_char, datamanager.char_to_ind
+    # X_val, y_val = None, None
+    # test_loss = None
+
     rng = np.random.default_rng()
     BitGen = type(rng.bit_generator)
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 25
-    m = 100
+    m = 50
     epochs = 1
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise RNN
-    rnn = RNN(m = m, K = datamanager.K, eta=0.001, rng = rng ,tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    rnn = RNN(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
@@ -349,14 +361,14 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
 
     # Train network
-    rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
+    trained_rnn = rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
     
     # Compute test loss
     test_loss = rnn.ComputeLoss(X_test, y_test, h0_np = np.zeros((1, m)))
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    rnn.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path)
+    rnn.synthesize_text(trained_rnn, x0 = X_train[0][0:1, :], text_length = 1000, model_path = model_path, test_loss = test_loss)
     rnn.save_model(model_path = model_path)
 
 

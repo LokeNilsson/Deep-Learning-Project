@@ -35,7 +35,7 @@ class DataManager():
                         text_list.append(text_file.read())
 
         generator = torch.Generator().manual_seed(42)
-        train, val, test = random_split(text_list, [0.7,0.1, 0.2], generator)
+        train, val, test = random_split(text_list, [0.7, 0.1, 0.2], generator)
         
         self.all_data = ''.join(text_list)
         self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
@@ -78,7 +78,34 @@ class DataManager():
             
         return X_list, y_list
 
-            
+
+    def read_HarryPotter(self):
+        filepath = f'goblet_book.txt'
+        fid = open(filepath, 'r')
+        book_data = fid.read()
+        fid.close()
+
+        # Extract unique characters from book
+        unique_chars = list(set(book_data))
+        self.K = len(unique_chars)
+
+        # Create one-hot encoding for every character
+        char_to_ind = {}
+        ind_to_char = {}
+        for idx, char in enumerate(unique_chars): 
+            char_to_ind[char] = idx
+            ind_to_char[idx] = char
+        
+        self.char_to_ind = char_to_ind
+        self.ind_to_char = ind_to_char
+        self.all_data = book_data
+        self.K = len(unique_chars)
+
+
+        self.K = len(unique_chars)
+        self.training_data = self.all_data
+
+
 def main():
     datamanager = DataManager()
     datamanager.read_files()
