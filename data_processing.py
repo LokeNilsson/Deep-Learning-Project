@@ -38,9 +38,12 @@ class DataManager():
         train, val, test = random_split(text_list, [0.7, 0.1, 0.2], generator)
         
         self.all_data = ''.join(text_list)
-        self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
-        self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
-        self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
+        # self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
+        # self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
+        # self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
+        self.training_data = np.asarray(text_list)[train.indices].tolist()
+        self.validation_data = np.asarray(text_list)[val.indices].tolist()
+        self.test_data = np.asarray(text_list)[test.indices].tolist()
         print('Files have been read.')
 
     def encode_data(self):
@@ -72,6 +75,29 @@ class DataManager():
 
             # ground truth indices
             y_indices = np.zeros(seq_length, dtype = int)
+            for i, y_char in enumerate(y_seq):
+                y_indices[i] = self.char_to_ind[y_char]
+            y_list.append(y_indices)
+            
+        return X_list, y_list
+
+    def create_article_sequences(self, data:list):
+        # Divide data into sequences
+        X_list = []
+        y_list = []
+        for text in data:
+            x_seq = text[0:-1]
+            y_seq = text[1:]
+           
+            # One-hot encoded input matrix
+            X_enc = np.zeros((len(x_seq), self.K))
+            for i, char in enumerate(x_seq):
+                ind = self.char_to_ind[char]
+                X_enc[i, ind] = 1
+            X_list.append(X_enc)
+
+            # ground truth indices
+            y_indices = np.zeros(len(y_seq), dtype = int)
             for i, y_char in enumerate(y_seq):
                 y_indices[i] = self.char_to_ind[y_char]
             y_list.append(y_indices)

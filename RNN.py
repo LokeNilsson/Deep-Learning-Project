@@ -58,8 +58,6 @@ class RNN:
 
     def ComputeLoss(self, X:list, y:list, h0_np:np.ndarray)->list:
         ht = torch.from_numpy(h0_np)
-        
-        tau = self.tau
 
         torch_network = {}
         for kk in self.rnn.keys():
@@ -76,6 +74,8 @@ class RNN:
         hprev = ht
         for i, (Xbatch_np, ybatch) in enumerate(zip(X, y)):
             Xbatch = torch.from_numpy(Xbatch_np) 
+            self.tau = Xbatch_np.shape[0]
+            tau = self.tau
             for t in range(self.tau):
                 a = torch.matmul(hprev, torch_network['W']) + torch.matmul(Xbatch[t:t+1], torch_network['U']) + torch_network['b']
                 assert a.shape == (1,self.m)
@@ -155,11 +155,11 @@ class RNN:
             # Iterate over sequences
             self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
             for Xbatch, ybatch in data:
+                self.tau = Xbatch.shape[0]
                 ht = self.last_h.detach().numpy()
                 # Forward- and backward pass
                 grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
                 
-
                 # Save loss
                 if t == 1:
                     smooth_loss = loss
@@ -188,10 +188,10 @@ class RNN:
         print(f'Training took {round(self.training_time, 4)} seconds to execute')
         
         # Plot losses
-        self.plot_loss(loss_list, val_loss, model_path = model_path)
+        self.plot_loss(t, loss_list, val_loss, model_path = model_path)
         return self.rnn
 
-    def plot_loss(self, smooth_loss:list, val_loss:list, model_path = None)->None:
+    def plot_loss(self, t:int, smooth_loss:list, val_loss:list, model_path = None)->None:
         """
         plot_costs plots the cost, loss and accuracy for training and validation over the number of update steps\n
         
@@ -202,13 +202,15 @@ class RNN:
         f_size = 25
         l_width = 3.0
 
+        t_points = np.linspace(0, t-1, len(smooth_loss))
+
         plt.figure('Training Loss', figsize = (10,5))
-        plt.plot(np.asarray(smooth_loss), 'b', label = 'Smooth Loss', linewidth = l_width)
+        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'Smooth Loss', linewidth = l_width)
         plt.xticks(fontsize = 20)
         plt.yticks(fontsize = 20)
         plt.xlabel('Update steps', fontsize = f_size)
         plt.ylabel('Smooth loss', fontsize = f_size)
-        # plt.xlim(0, len(smooth_loss))
+        plt.xlim(0, t)
         plt.ylim(bottom = 0)
         plt.legend(fontsize = f_size)
         if model_path:
@@ -219,16 +221,17 @@ class RNN:
 
         # Plot validation loss
         if len(val_loss) > 0:
+            t_points = np.linspace(0, t-1, len(val_loss))
             f_size = 25
             l_width = 3.0
 
             plt.figure('Valiation Loss', figsize = (10,5))
-            plt.plot(np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
+            plt.plot(t_points, np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
             plt.xticks(fontsize = 20)
             plt.yticks(fontsize = 20)
             plt.xlabel('Update steps', fontsize = f_size)
             plt.ylabel('Smooth loss', fontsize = f_size)
-            # plt.xlim(0, len(smooth_loss))
+            plt.xlim(0, t)
             plt.ylim(bottom = 0)
             plt.legend(fontsize = f_size)
             if model_path:
@@ -237,16 +240,9 @@ class RNN:
             else:
                 plt.show()
 
-
     def save_model(self, model_path):
         model_data = {
-            'RNN': self.rnn,
-            'char_to_ind': self.char_to_ind,
-            'ind_to_char': self.ind_to_char, 
-            'm': self.m,
-            'K': self.K,
-            'eta': self.eta,
-            'last_h': self.last_h
+            'self': self,
         }
         filename = f"{model_path}/model"
         with open(filename, 'wb') as f:
@@ -264,11 +260,11 @@ class RNN:
         self.last_h = self.last_h
 
 
-    def synthesize_text(self, rnn: dict, x0:np.ndarray, text_length:int, model_path = None, test_loss = None, T = None, theta = None) -> str:
+    def synthesize_text(self, x0:np.ndarray, text_length:int, test_loss = None, T = None, theta = None) -> str:
         # Network Weights and biases
 
-        U, W, V = rnn['U'], rnn['W'], rnn['V']
-        b, c = rnn['b'], rnn['c']
+        U, W, V = self.rnn['U'], self.rnn['W'], self.rnn['V']
+        b, c = self.rnn['b'], self.rnn['c']
 
         h = self.last_h.detach().numpy()
         chars = []
@@ -321,12 +317,7 @@ class RNN:
         text_seq = "".join(chars)
         text_seq += f'\n \n \n \n Test Loss: {test_loss}, Training took {self.training_time:.2f} seconds'   
     
-        if model_path:
-            filename = f"{model_path}/text.txt"
-            with open(filename, 'w') as f:
-                f.write(text_seq)
-        return text_seq
-        
+        return text_seq    
         
 def main():
     datamanager = DataManager()
@@ -347,7 +338,7 @@ def main():
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 25
-    m = 50
+    m = 10
     epochs = 1
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
@@ -356,12 +347,12 @@ def main():
     rnn = RNN(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
-    X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
-    X_val, y_val = datamanager.create_sequences(datamanager.validation_data, seq_length)
-    X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
+    X_train, y_train = datamanager.create_article_sequences(datamanager.training_data)
+    X_val, y_val = datamanager.create_article_sequences(datamanager.validation_data)
+    X_test, y_test = datamanager.create_article_sequences(datamanager.test_data)
 
     # Train network
-    trained_rnn = rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
+    trained_rnn = rnn.training(X_train[0:10], y_train[0:10], X_val[0:10], y_val[0:10], epochs = epochs, model_path = model_path)
     
     # Compute test loss
     test_loss = rnn.ComputeLoss(X_test, y_test, h0_np = np.zeros((1, m)))

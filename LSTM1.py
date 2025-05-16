@@ -246,10 +246,10 @@ class LSTM1:
         print(f'Training took {round(self.training_time, 4)} seconds to execute')
         
         # Plot losses
-        self.plot_loss(loss_list, val_loss, model_path = model_path)
+        self.plot_loss(t, loss_list, val_loss, model_path = model_path)
         return self.lstm
 
-    def plot_loss(self, smooth_loss:list, val_loss:list, model_path = None)->None:
+    def plot_loss(self, t:int, smooth_loss:list, val_loss:list, model_path = None)->None:
         """
         plot_costs plots the cost, loss and accuracy for training and validation over the number of update steps\n
         
@@ -260,13 +260,15 @@ class LSTM1:
         f_size = 25
         l_width = 3.0
 
+        t_points = np.linspace(0, t-1, len(smooth_loss))
+
         plt.figure('Training Loss', figsize = (10,5))
-        plt.plot(np.asarray(smooth_loss), 'b', label = 'Smooth Loss', linewidth = l_width)
+        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'Smooth Loss', linewidth = l_width)
         plt.xticks(fontsize = 20)
         plt.yticks(fontsize = 20)
         plt.xlabel('Update steps', fontsize = f_size)
         plt.ylabel('Smooth loss', fontsize = f_size)
-        # plt.xlim(0, len(smooth_loss))
+        plt.xlim(0, t)
         plt.ylim(bottom = 0)
         plt.legend(fontsize = f_size)
         if model_path:
@@ -277,16 +279,17 @@ class LSTM1:
 
         # Plot validation loss
         if len(val_loss) > 0:
+            t_points = np.linspace(0, t-1, len(val_loss))
             f_size = 25
             l_width = 3.0
 
             plt.figure('Valiation Loss', figsize = (10,5))
-            plt.plot(np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
+            plt.plot(t_points, np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
             plt.xticks(fontsize = 20)
             plt.yticks(fontsize = 20)
             plt.xlabel('Update steps', fontsize = f_size)
             plt.ylabel('Smooth loss', fontsize = f_size)
-            # plt.xlim(0, len(smooth_loss))
+            plt.xlim(0, t)
             plt.ylim(bottom = 0)
             plt.legend(fontsize = f_size)
             if model_path:
@@ -298,12 +301,7 @@ class LSTM1:
 
     def save_model(self, model_path):
         model_data = {
-            'lstm': self.lstm,
-            'char_to_ind': self.char_to_ind,
-            'ind_to_char': self.ind_to_char, 
-            'm': self.m,
-            'K': self.K,
-            'eta': self.eta,
+            'self' : self,
         }
         filename = f"{model_path}/model"
         with open(filename, 'wb') as f:
@@ -320,14 +318,14 @@ class LSTM1:
         self.eta = model_data['eta']
 
 
-    def synthesize_text(self, lstm: dict, x0:np.ndarray, text_length:int, model_path = None, test_loss = None, T = None, theta = None) -> str:
+    def synthesize_text(self, x0:np.ndarray, text_length:int, test_loss = None, T = None, theta = None) -> str:
         
         chars = []
 
         # Load net
         torch_network = {}
-        for kk in lstm.keys():
-            torch_network[kk] = torch.tensor(lstm[kk], dtype = torch.float64, requires_grad=True)
+        for kk in self.lstm.keys():
+            torch_network[kk] = torch.tensor(self.lstm[kk], dtype = torch.float64, requires_grad=True)
      
         apply_tanh = torch.nn.Tanh()
         apply_sigmoid = torch.nn.Sigmoid()
@@ -396,12 +394,11 @@ class LSTM1:
             xt[0, ii] = 1
             
         text_seq = "".join(chars)
-        text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'   
+        if test_loss:
+            text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'   
+        else:
+            text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'   
     
-        if model_path:
-            filename = f"{model_path}/text.txt"
-            with open(filename, 'w') as f:
-                f.write(text_seq)
         return text_seq
         
         
@@ -415,9 +412,9 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 50
-    m = 75
-    epochs = 10
+    seq_length = 25
+    m = 50
+    epochs = 1
     model_path = f'LSTM1/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -430,14 +427,14 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
 
     # Train network
-    trained_lstm = lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
+    lstm.training(X_train, y_train, X_val[0:10], y_val[0:10], epochs = epochs, model_path = model_path)
     
     # Compute test loss
-    test_loss = lstm.ComputeLoss(X_test, y_test, h0_np = np.zeros((1, m)))
+    test_loss = lstm.ComputeLoss(X_test[0:10], y_test[0:10], h0_np = np.zeros((1, m)))
     print(f'test loss: {round(test_loss, 2)}')
     
     # Synthesize text
-    lstm.synthesize_text(trained_lstm, x0 = X_test[0][0:1, :], text_length = 1000, model_path = model_path, test_loss = test_loss)
+    lstm.synthesize_text(x0 = X_test[0][0:1, :], text_length = 1000, test_loss = test_loss)
     lstm.save_model(model_path = model_path)
 
 
