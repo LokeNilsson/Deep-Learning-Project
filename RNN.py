@@ -204,12 +204,7 @@ class RNN:
         return self.rnn
 
     def plot_loss(self, t:int, smooth_loss:list, val_loss:list, model_path = None)->None:
-        """
-        plot_costs plots the cost, loss and accuracy for training and validation over the number of update steps\n
-        
-        :param smooth_loss: smooth loss values during training
-        :type smooth_loss: list
-        """
+
         # Plot Smooth Loss
         f_size = 25
         l_width = 3.0
@@ -217,7 +212,10 @@ class RNN:
         t_points = np.linspace(0, t-1, len(smooth_loss))
 
         plt.figure('Training Loss', figsize = (10,5))
-        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'Smooth Loss', linewidth = l_width)
+        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'training loss', linewidth = l_width)
+        if len(val_loss) > 0:
+            t_points_val = np.linspace(0, t-1, len(val_loss))
+            plt.plot(t_points_val, np.asarray(val_loss), 'r', label = 'validation loss', linewidth=l_width)
         plt.xticks(fontsize = 20)
         plt.yticks(fontsize = 20)
         plt.xlabel('Update steps', fontsize = f_size)
@@ -226,31 +224,11 @@ class RNN:
         plt.ylim(bottom = 0)
         plt.legend(fontsize = f_size)
         if model_path:
-            filename = f"{model_path}/train_loss"
+            filename = f"{model_path}/loss"
             plt.savefig(filename, bbox_inches='tight')
         else:
             plt.show()
 
-        # Plot validation loss
-        if len(val_loss) > 0:
-            t_points = np.linspace(0, t-1, len(val_loss))
-            f_size = 25
-            l_width = 3.0
-
-            plt.figure('Validation Loss', figsize = (10,5))
-            plt.plot(t_points, np.asarray(val_loss), 'b', label='Smooth Loss', linewidth=l_width)
-            plt.xticks(fontsize = 20)
-            plt.yticks(fontsize = 20)
-            plt.xlabel('Update steps', fontsize = f_size)
-            plt.ylabel('Smooth loss', fontsize = f_size)
-            plt.xlim(0, t)
-            plt.ylim(bottom = 0)
-            plt.legend(fontsize = f_size)
-            if model_path:
-                filename = f"{model_path}/val_loss"
-                plt.savefig(filename, bbox_inches = 'tight')
-            else:
-                plt.show()
 
     def save_model(self, model_path):
         model_data = {
@@ -352,7 +330,7 @@ def main():
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 25
     m = 200
-    epochs = 100
+    epochs = 3
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
