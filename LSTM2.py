@@ -330,7 +330,7 @@ class LSTM2:
         print(f'Training took {round(self.training_time, 4)} seconds to execute')
         
         # Plot losses
-        #self.plot_loss(t, loss_list, val_loss, model_path = model_path)
+        self.plot_loss(t, loss_list, val_loss, model_path = model_path)
         return self.training_time, val_loss[-1], loss_list[-1]
 
     def plot_loss(self, t:int, smooth_loss:list, val_loss:list, model_path = None)->None:
@@ -493,7 +493,7 @@ def main():
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 50
-    m1, m2 = 200, 150    
+    m1, m2 = 100, 100    
     epochs = 10
     model_path = f'LSTM2/m1-{m1}_m2-{m2}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
