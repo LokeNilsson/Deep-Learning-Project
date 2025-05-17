@@ -328,9 +328,7 @@ class RNN:
 
         text_seq = "".join(chars)
         if test_loss:
-            text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'   
-        else:
-            text_seq += f'\n \n \n \n Training took {self.training_time:.2f} seconds'    
+            text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'     
     
         return text_seq    
         
