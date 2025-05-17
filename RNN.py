@@ -156,7 +156,7 @@ class RNN:
             print(f'epoch: {i+1}')
             data = list(zip(X, y))
             # Shuffle data
-            # self.rng.shuffle(data)
+            self.rng.shuffle(data)
 
             # reset h between epochs
             self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
@@ -328,9 +328,9 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 25
-    m = 200
-    epochs = 3
+    seq_length = 50
+    m = 150
+    epochs = 5
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -343,7 +343,7 @@ def main():
     X_test, y_test = datamanager.create_article_sequences(datamanager.test_data, seq_length=seq_length)
     print('Sequences created')
 
-    X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    #X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
     
     # Train network
     rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
