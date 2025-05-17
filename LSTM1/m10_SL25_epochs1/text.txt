@@ -1,6 +1,0 @@
-AKA1WKgg1W::rKK:??cW:j11A1WA1g??g1r?Wg?rK1rA:j:?WKjA:r1?A:1AW1WKW1Kr:WKr?cKjg?KWKW1W1j11?1:WrrA11c::cKKc:?gAA1?jj1:r::Krjcc?W:K1rA:K1KWrcAWKW:1g1Wr1ggKAj??KKKA:Kcc?cgKrjr?W1r::1j1?rj1Agr?1ggKcrr:rjgK:1g::Agj1Ar:WrgAcjAWAj1AW::jgWK??g:cK?Ar1g?rKWjrjKWcgK:AggcA1jj1r1A?gcc1?Kg:j:?jAj1KcA1cc:KA:jjrAKW:Wr:WK?crcrcggK:cKc?cgjgKWrK?jA:Wg1rrArccjccA1jj:A:c1rcgccAArcr1?j:AWKrcAgr::1AKg1c?Ac1?W?KAArKKr?:c:?jAj???:WgWrWj:j:rrWg:K:A?KWKj11cgKW:cKj1r1A1:K::cj::cK?crrKjA:WW1r:WWK?1:c?K:cWWK1jWKKjjKA:?Kcrj?jAW?:rjcKKW1W1?1WWr1WcrAjg:jAAA::WcWr:rgW:r1?1W:rWAcjr::gWcjKj?jK:AKAWc?rjrr??Wj1?:gAcgWrjgrKrcWrcWc??rgcKcj1Wr1Agjcc::?j?rAW:K1:?1j:c1rgrK?:r:WKcgA:cjrrrgA1AW1j:rj?:?g:?W:K:cjgKKg1jKKA1c:rK?::Krj:crj1Krr?rcg?:rjW?WW::WWjg:gKA?KcgKjAgAgcjjggcKAWcW1KK1A?KcA:KKcKWWc:ArAcrK1Wcg:?W:K1gcAr?AK:1rj?rWAcgr1W1jK?K?:ggjrgW:?:rgAccrWjgrg?W1rj?c?ccWgAj?cKWgjWcr?jccWcc???K:j11?WjrjKKj:WKWjWcrjjjc:WWcKrg1ccjWjAA:K:W??1g1cWgWcjjA?1W???A?WrrWKgjK:AKWggWW?cWgcWWg?:r:AW?Wr:rW1g?K::Kgc?gAr::1gAjj1cWj?c1c?ggg1KcKWK:?W
- 
- 
- 
- Test Loss: 3.325359282449765 
- Training took 4.49 seconds
