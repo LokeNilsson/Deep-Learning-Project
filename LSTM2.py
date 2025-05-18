@@ -279,7 +279,7 @@ class LSTM2:
             print(f' ----- Epoch: {i+1} ------ ')
             # Shuffle data
             data = list(zip(X, y))
-            self.rng.shuffle(data) 
+            #self.rng.shuffle(data) 
 
             # Reset h between epochs
             self.last_h1 = torch.zeros(1, self.m1, dtype = torch.float64)
@@ -334,7 +334,7 @@ class LSTM2:
 
         t_points = np.linspace(0, t-1, len(smooth_loss))
 
-        plt.figure('Training Loss', figsize = (10,5))
+        plt.figure('Loss', figsize = (10,5))
         plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'training loss', linewidth = l_width)
         if len(val_loss) > 0:
             t_points_val = np.linspace(0, t-1, len(val_loss))
@@ -351,6 +351,22 @@ class LSTM2:
             plt.savefig(filename, bbox_inches='tight')
         else:
             plt.show()
+
+        plt.figure('Training Loss', figsize = (10,5))
+        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'training loss', linewidth = l_width)
+        plt.xticks(fontsize = 20)
+        plt.yticks(fontsize = 20)
+        plt.xlabel('Update steps', fontsize = f_size)
+        plt.ylabel('Smooth loss', fontsize = f_size)
+        plt.xlim(0, t)
+        plt.ylim(bottom = 0)
+        plt.legend(fontsize = f_size)
+        if model_path:
+            filename = f"{model_path}/training_loss"
+            plt.savefig(filename, bbox_inches='tight')
+        else:
+            plt.show()
+
 
 
     def save_model(self, model_path):
@@ -485,14 +501,14 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 50
-    m1, m2 = 100, 100    
-    epochs = 200
+    seq_length = 25
+    m1, m2 = 16, 8    
+    epochs = 1
     model_path = f'LSTM2/m1-{m1}_m2-{m2}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise LSTM
-    lstm = LSTM2(m1 = m1, m2 = m2, K = datamanager.K, eta = 0.01, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    lstm = LSTM2(m1 = m1, m2 = m2, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
@@ -500,7 +516,7 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
     print('Sequences created')
 
-    X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:100], y_train[0:100], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    #X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:100], y_train[0:100], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
     
     # Train network
     lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
