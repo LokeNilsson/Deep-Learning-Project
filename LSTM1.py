@@ -241,7 +241,7 @@ class LSTM1:
                     self.lstm[kk] = self.lstm[kk] - (self.eta/(np.sqrt(self.adam_params[f'vhat_{kk}']) + self.adam_params['eps']))*self.adam_params[f'mhat_{kk}']
                 
                 # Validation
-                if t % 10000 == 0:
+                if t % 1000 == 0:
                     print(f'iteration: {t}')
                     val_loss.append(self.ComputeLoss(Xval, yval))
                 
@@ -263,7 +263,7 @@ class LSTM1:
 
         t_points = np.linspace(0, t-1, len(smooth_loss))
 
-        plt.figure('Training Loss', figsize = (10,5))
+        plt.figure('Loss', figsize = (10,5))
         plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'training loss', linewidth = l_width)
         if len(val_loss) > 0:
             t_points_val = np.linspace(0, t-1, len(val_loss))
@@ -277,6 +277,21 @@ class LSTM1:
         plt.legend(fontsize = f_size)
         if model_path:
             filename = f"{model_path}/loss"
+            plt.savefig(filename, bbox_inches='tight')
+        else:
+            plt.show()
+
+        plt.figure('Training Loss', figsize = (10,5))
+        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'training loss', linewidth = l_width)
+        plt.xticks(fontsize = 20)
+        plt.yticks(fontsize = 20)
+        plt.xlabel('Update steps', fontsize = f_size)
+        plt.ylabel('Smooth loss', fontsize = f_size)
+        plt.xlim(0, t)
+        plt.ylim(bottom = 0)
+        plt.legend(fontsize = f_size)
+        if model_path:
+            filename = f"{model_path}/training_loss"
             plt.savefig(filename, bbox_inches='tight')
         else:
             plt.show()
@@ -369,7 +384,7 @@ class LSTM1:
             
         text_seq = "".join(chars)
         if val_loss:
-            text_seq += f'\n \n \n \n Test Loss: {val_loss} \n Training took {self.training_time:.2f} seconds'   
+            text_seq += f'\n \n \n \n Validation Loss: {val_loss} \n Training took {self.training_time:.2f} seconds'   
     
         return text_seq
         
