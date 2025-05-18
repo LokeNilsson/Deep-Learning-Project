@@ -46,7 +46,6 @@ class RNN:
             'V' : V
         }
 
-        
         self.m_adam      = {'b': np.zeros_like(b), 'c' : np.zeros_like(c), 'U' : np.zeros_like(U), 'W' : np.zeros_like(W), 'V' : np.zeros_like(V)}
         self.v_adam      = {'b': np.zeros_like(b), 'c' : np.zeros_like(c), 'U' : np.zeros_like(U), 'W' : np.zeros_like(W), 'V' : np.zeros_like(V)}
         self.m_hat_adam  = {'b': np.zeros_like(b), 'c' : np.zeros_like(c), 'U' : np.zeros_like(U), 'W' : np.zeros_like(W), 'V' : np.zeros_like(V)}
@@ -69,32 +68,28 @@ class RNN:
         
         # Iterate over articles
         data = list(zip(X, y))
-        for X_article, y_article in data:
-            # sequences from one article
-            sequences = list(zip(X_article, y_article))
+        hprev = self.last_h
+        for Xbatch, ybatch in data:
+            Xbatch = torch.from_numpy(Xbatch)
+            
+            # create an empty tensor to store the hidden vector at each timestep
+            Hs = torch.empty(self.tau, self.m, dtype=torch.float64)
 
-            hprev = self.last_h
-            for Xbatch_np, ybatch in sequences:
-                Xbatch = torch.from_numpy(Xbatch_np)
-                
-                # create an empty tensor to store the hidden vector at each timestep
-                Hs = torch.empty(self.tau, self.m, dtype=torch.float64)
+            for t in range(self.tau):
+                a = torch.matmul(hprev, torch_network['W']) + torch.matmul(Xbatch[t:t+1], torch_network['U']) + torch_network['b']
+                assert a.shape == (1,self.m)
 
-                for t in range(self.tau):
-                    a = torch.matmul(hprev, torch_network['W']) + torch.matmul(Xbatch[t:t+1], torch_network['U']) + torch_network['b']
-                    assert a.shape == (1,self.m)
+                ht = apply_tanh(a)
+                Hs[t:t+1, :] = ht
 
-                    ht = apply_tanh(a)
-                    Hs[t:t+1, :] = ht
-
-                    hprev = ht
-                
-                Os = torch.matmul(Hs, torch_network['V']) + torch_network['c']       
-                P = apply_softmax(Os)    
-                
-                # compute the loss
-                loss = torch.mean(-torch.log(P[np.arange(self.tau), ybatch]))
-                loss_list.append(loss.detach().numpy())
+                hprev = ht
+            
+            Os = torch.matmul(Hs, torch_network['V']) + torch_network['c']       
+            P = apply_softmax(Os)    
+            
+            # compute the loss
+            loss = torch.mean(-torch.log(P[np.arange(self.tau), ybatch]))
+            loss_list.append(loss.detach().numpy())
             
         return np.mean(loss_list)
 
@@ -110,7 +105,8 @@ class RNN:
      
         apply_tanh = torch.nn.Tanh()
         apply_softmax = torch.nn.Softmax(dim=1)
-        
+        dropout = torch.nn.Dropout(p = 0.2)
+
         # create an empty tensor to store the hidden vector at each timestep
         Hs = torch.empty(X.shape[0], ht.shape[1], dtype=torch.float64)
         
@@ -126,6 +122,10 @@ class RNN:
         
         self.last_h = hprev
         Os = torch.matmul(Hs, torch_network['V']) + torch_network['c']       
+        
+        # Droput layer
+        #Os = dropout(Os)
+
         P = apply_softmax(Os)    
         
         # compute the loss
@@ -154,20 +154,15 @@ class RNN:
         start_time = perf_counter()
         for i in range(epochs): 
             print(f'epoch: {i+1}')
-            data = list(zip(X, y))
             # Shuffle data
+            data = list(zip(X, y))
             self.rng.shuffle(data)
 
             # reset h between epochs
             self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
 
-            # Iterate over articles
-            for X_article, y_article in data:
-                # sequences from one article
-                sequences = list(zip(X_article, y_article))
-
-                
-                for Xbatch, ybatch in sequences:
+            # Iterate over batches
+            for Xbatch, ybatch in data:
                     self.tau = Xbatch.shape[0]
                     ht = self.last_h.detach().numpy()
                     # Forward- and backward pass
@@ -189,9 +184,10 @@ class RNN:
                         self.rnn[kk]         = self.rnn[kk] - (self.eta/(np.sqrt(self.v_hat_adam[kk]) + self.eps))*self.m_hat_adam[kk]
                     
                     # Validation
-                    if t % 10000 == 0:
+                    if t % 1000 == 0:
                         print(f'iteration: {t}')
                         val_loss.append(self.ComputeLoss(Xval, yval))
+                        
                     
                     t += 1 # increment iterations
         # Training time
@@ -229,7 +225,6 @@ class RNN:
         else:
             plt.show()
 
-
     def save_model(self, model_path):
         model_data = {
             'self': self,
@@ -250,14 +245,14 @@ class RNN:
         self.last_h = self.last_h
 
 
-    def synthesize_text(self, x0:np.ndarray, text_length:int, test_loss = None, T = None, theta = None) -> str:
+    def synthesize_text(self, x0:np.ndarray, text_length:int, val_loss = None, T = None, theta = None) -> str:
         # Network Weights and biases
 
         U, W, V = self.rnn['U'], self.rnn['W'], self.rnn['V']
         b, c = self.rnn['b'], self.rnn['c']
 
         h = self.last_h.detach().numpy()
-        chars = []
+        chars = ['T']
 
         xt = x0.reshape(1, self.K) # (1, K)
         for t in range(text_length):
@@ -305,8 +300,8 @@ class RNN:
             xt[0, ii] = 1
 
         text_seq = "".join(chars)
-        if test_loss:
-            text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'     
+        if val_loss:
+            text_seq += f'\n \n \n \n Validation Loss: {val_loss} \n Training took {self.training_time:.2f} seconds'     
     
         return text_seq    
         
@@ -321,16 +316,16 @@ def main():
     # datamanager.read_HarryPotter()
     # ind_to_char, char_to_ind = datamanager.ind_to_char, datamanager.char_to_ind
     # X_val, y_val = None, None
-    # test_loss = None
+    # val_loss = None
 
     rng = np.random.default_rng()
     BitGen = type(rng.bit_generator)
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 50
-    m = 150
-    epochs = 5
+    seq_length = 25
+    m = 10
+    epochs = 1
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -338,9 +333,9 @@ def main():
     rnn = RNN(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
-    X_train, y_train = datamanager.create_article_sequences(datamanager.training_data, seq_length=seq_length)
-    X_val, y_val = datamanager.create_article_sequences(datamanager.validation_data, seq_length=seq_length)
-    X_test, y_test = datamanager.create_article_sequences(datamanager.test_data, seq_length=seq_length)
+    X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length=seq_length)
+    X_val, y_val = datamanager.create_sequences(datamanager.validation_data, seq_length=seq_length)
+    X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length=seq_length)
     print('Sequences created')
 
     #X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
@@ -348,17 +343,15 @@ def main():
     # Train network
     rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
     
-    # Compute test loss
-    test_loss = rnn.ComputeLoss(X_test, y_test)
-    print(f'test loss: {round(test_loss, 2)}')
+    # Compute validation loss
+    val_loss = rnn.ComputeLoss(X_val, y_val)
+    print(f'validation_loss: {round(val_loss, 2)}')
     
-    # Synthesize textproject/RNN.py
-
     # Generate starting letter
     x0 = np.zeros((1, rnn.K), dtype = np.float64)
     ii = rnn.char_to_ind['T']
     x0[0, ii] = 1
-    text_seq = rnn.synthesize_text(x0 = x0, text_length = 1000, test_loss = test_loss)
+    text_seq = rnn.synthesize_text(x0 = x0, text_length = 1000, val_loss = val_loss)
     with open(f'{model_path}/text.txt', 'w') as f:
         f.write(text_seq)
 

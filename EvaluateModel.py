@@ -37,7 +37,7 @@ class ModelEvaluator():
                     continue
             tokens.append(token)
                 
-        print(f'Percent of valid words: {round(100*(sum(1 for t in tokens if t.lower() in self.english_vocab) / len(tokens)), 2)}%')
+        print(f'Percentage of valid words: {round(100*(sum(1 for t in tokens if t.lower() in self.english_vocab) / len(tokens)), 2)}%')
     
     def bleu_score(self, preds, refs):
         bleu = evaluate.load("sacrebleu")
@@ -52,7 +52,7 @@ def main():
     ref_training_text = datamanager.training_data
 
     # Paramteres to fill in:
-    model_path = 'LSTM1/m100_SL25_epochs15'
+    model_path = 'RNN/m125_SL50_epochs1'
     text_length = 1000
 
     # Initialise Evaluator
@@ -71,7 +71,7 @@ def main():
     x0[0, ii] = 1
     
     # Generate Text
-    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = None)
+    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = 0.7)
     print(generated_text)
     evaluator.bleu_score(generated_text, ref_training_text)
     evaluator.percent_valid_words(generated_text)

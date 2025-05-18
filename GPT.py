@@ -35,13 +35,11 @@ class GPT:
 
         # Transformation Layer
         V1 = (1/np.sqrt(m))*rng.standard_normal(size = (m, m), dtype=np.float64) 
-        c1 = np.zeros((1, K), dtype=np.float64)
+        c1 = np.zeros((1, m), dtype=np.float64)
 
         # Output Layer
-        V2 = (1/np.sqrt(m))*rng.standard_normal(size = (m, m), dtype=np.float64) 
+        V2 = (1/np.sqrt(m))*rng.standard_normal(size = (m, K), dtype=np.float64) 
         c2 = np.zeros((1, K), dtype=np.float64)
-        
-
 
         # store parameters in dictionary
         self.gpt = {
@@ -72,7 +70,7 @@ class GPT:
     def ComputeLoss(self, X:list, y:list)->list:
         torch_network = {}
         for kk in self.gpt.keys():
-            torch_network[kk] = torch.tensor(self.gpt[kk], requires_grad=True)
+            torch_network[kk] = torch.tensor(self.gpt[kk])
 
         # Create activation functions       
         apply_softmax = torch.nn.Softmax(dim=1)
@@ -88,7 +86,8 @@ class GPT:
             for Xbatch_np, ybatch in sequences:
                 X = torch.from_numpy(Xbatch_np)
                 y = torch.from_numpy(ybatch)
-                apply_layernorm = torch.nn.LayerNorm(self.m, bias=False, dtype=torch.float64) 
+                apply_softmax = torch.nn.Softmax(dim=1)
+                apply_relu    = torch.nn.ReLU()
 
                 # calculate query, key and value matrices
                 Q1 = torch.matmul(X, torch_network['Wq1'])
@@ -96,21 +95,21 @@ class GPT:
                 V1 = torch.matmul(X, torch_network['Wv1'])
 
                 # get attention weights and multiply with values
-                attn_weights1 = apply_softmax((torch.matmul(Q1, K1.T)/torch.sqrt(torch.tensor(self.m))))
+                scores = torch.matmul(Q1, K1.T)/torch.sqrt(torch.tensor(self.m))
+                upper_tri_inds = torch.triu_indices(scores.shape[0], scores.shape[1], offset=1)
+                scores[upper_tri_inds[0], upper_tri_inds[1]] = -torch.inf
+                attn_weights1 = apply_softmax(scores)
 
                 Z1 = torch.matmul(attn_weights1, V1)
-
-                # Add and normalization layer
-                Z1 = apply_layernorm(X+Z1)
 
                 # Feedforward       
                 FF1 = torch.matmul(Z1, torch_network['V1']) + torch_network['c1'] 
 
-                # Add and normaliation layer
-                FF1 = apply_layernorm(Z1+FF1)
+                # RELU
+                FF1_relu = apply_relu(FF1)
 
                 # linear layer
-                Os = torch.matmul(FF1, torch_network['V2']) + torch_network['c2'] 
+                Os = torch.matmul(FF1_relu, torch_network['V2']) + torch_network['c2'] 
 
                 # Softmax to get final predictions
                 P = apply_softmax(Os)
@@ -121,7 +120,6 @@ class GPT:
             
         return np.mean(loss_list)
 
-
     def BackwardsPass(self, X_np:np.ndarray, y_np:np.ndarray) -> dict:
         X = torch.from_numpy(X_np)
         y = torch.from_numpy(y_np)
@@ -131,7 +129,7 @@ class GPT:
             torch_network[kk] = torch.tensor(self.gpt[kk], dtype = torch.float64, requires_grad=True)
 
         apply_softmax = torch.nn.Softmax(dim=1)
-        apply_layernorm = torch.nn.LayerNorm(self.m, bias=False, dtype=torch.float64)
+        apply_relu    = torch.nn.ReLU()
 
         # calculate query, key and value matrices
         Q1 = torch.matmul(X, torch_network['Wq1'])
@@ -139,21 +137,21 @@ class GPT:
         V1 = torch.matmul(X, torch_network['Wv1'])
 
         # get attention weights and multiply with values
-        attn_weights1 = apply_softmax((torch.matmul(Q1, K1.T)/torch.sqrt(torch.tensor(self.m))))
+        scores = torch.matmul(Q1, K1.T)/torch.sqrt(torch.tensor(self.m))
+        upper_tri_inds = torch.triu_indices(scores.shape[0], scores.shape[1], offset=1)
+        scores[upper_tri_inds[0], upper_tri_inds[1]] = -torch.inf
+        attn_weights1 = apply_softmax(scores)
 
         Z1 = torch.matmul(attn_weights1, V1)
 
-        # Add and normalization layer
-        Z1 = apply_layernorm(X+Z1)
-
         # Feedforward       
-        FF1 = torch.matmul(Z1, torch_network['V1']) + torch_network['c1'] 
+        FF1 = torch.matmul(torch.nn.LayerNorm(X.shape[-1], bias = False, dtype = torch.float64)(Z1+X), torch_network['V1']) + torch_network['c1'] 
 
-        # Add and normaliation layer
-        FF1 = apply_layernorm(Z1+FF1)
+        # RELU
+        FF1_relu = apply_relu(FF1)
 
         # linear layer
-        Os = torch.matmul(FF1, torch_network['V2']) + torch_network['c2'] 
+        Os = torch.matmul(torch.nn.LayerNorm(Z1.shape[-1], bias = False, dtype = torch.float64)(FF1_relu+Z1), torch_network['V2']) + torch_network['c2'] 
 
         # Softmax to get final predictions
         P = apply_softmax(Os)
@@ -214,7 +212,7 @@ class GPT:
                     # Validation
                     if t % 10000 == 0:
                         print(f'iteration: {t}')
-                        val_loss.append(self.ComputeLoss(Xval, yval))
+                        # val_loss.append(self.ComputeLoss(Xval, yval))
 
                     t += 1
                     
@@ -275,39 +273,37 @@ class GPT:
 
 
     def synthesize_text(self, x0:np.ndarray, text_length:int, test_loss = None, T = None, theta = None) -> str:
-        chars = []
+        chars = ['T']
         apply_softmax = torch.nn.Softmax(dim=1)
+        apply_relu    = torch.nn.ReLU()
         torch_network = {}
         for kk in self.gpt.keys():
-            torch_network[kk] = torch.tensor(self.gpt[kk], dtype = torch.float64, requires_grad=True)
+            torch_network[kk] = torch.tensor(self.gpt[kk], dtype = torch.float64)
 
         xt = torch.from_numpy(x0)
         for t in range(text_length):
-            apply_layernorm = torch.nn.LayerNorm(self.m, bias=False, dtype=torch.float64) 
-
             # calculate query, key and value matrices
             Q1 = torch.matmul(xt, torch_network['Wq1'])
             K1 = torch.matmul(xt, torch_network['Wk1'])
             V1 = torch.matmul(xt, torch_network['Wv1'])
 
             # get attention weights and multiply with values
-            attn_weights1 = apply_softmax((torch.matmul(Q1, K1.T)/torch.sqrt(torch.tensor(self.m))))
+            scores = torch.matmul(Q1, K1.T)/torch.sqrt(torch.tensor(self.m))
+            upper_tri_inds = torch.triu_indices(scores.shape[0], scores.shape[1], offset=1)
+            scores[upper_tri_inds[0], upper_tri_inds[1]] = -torch.inf
+            attn_weights1 = apply_softmax(scores)
 
             Z1 = torch.matmul(attn_weights1, V1)
-
-            # Add and normalization layer
-            Z1 = apply_layernorm(xt+Z1)
 
             # Feedforward       
             FF1 = torch.matmul(Z1, torch_network['V1']) + torch_network['c1'] 
 
-            # Add and normaliation layer
-            FF1 = apply_layernorm(Z1+FF1)
+            # RELU
+            FF1_relu = apply_relu(FF1)
 
             # linear layer
-            o_s = torch.matmul(FF1, torch_network['V2']) + torch_network['c2'] 
-
-            o_s = o_s.detach().numpy()
+            o_s = torch.matmul(FF1_relu, torch_network['V2']) + torch_network['c2']
+            o_s = o_s[-1, :].detach().numpy().reshape(1, -1)
             
             # Check if both T and theta are used
             if T and theta:
@@ -344,8 +340,9 @@ class GPT:
             chars.append(self.ind_to_char[ii])
             
             # Set sampled charcter to next input
-            xt = torch.zeros(1, self.K, dtype=torch.float64)
-            xt[0, ii] = 1
+            xt_new = torch.zeros(1, self.K, dtype=torch.float64)
+            xt_new[0, ii] = 1
+            xt = torch.cat([xt, xt_new], dim=0)
 
         text_seq = "".join(chars)
         if test_loss:
@@ -373,12 +370,12 @@ def main():
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 25
     m = datamanager.K
-    epochs = 30
-    model_path = f'gpt/m{m}_SL{seq_length}_epochs{epochs}/'
+    epochs = 200
+    model_path = f'GPT/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise gpt
-    gpt = GPT(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    gpt = GPT(m = m, K = datamanager.K, eta = 0.0001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_article_sequences(datamanager.training_data, seq_length=seq_length)

@@ -38,12 +38,12 @@ class DataManager():
         train, val, test = random_split(text_list, [0.7, 0.1, 0.2], generator)
         
         self.all_data = ''.join(text_list)
-        # self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
-        # self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
-        # self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
-        self.training_data = np.asarray(text_list)[train.indices].tolist()
-        self.validation_data = np.asarray(text_list)[val.indices].tolist()
-        self.test_data = np.asarray(text_list)[test.indices].tolist()
+        self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
+        self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
+        self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
+        # self.training_data = np.asarray(text_list)[train.indices].tolist()
+        # self.validation_data = np.asarray(text_list)[val.indices].tolist()
+        # self.test_data = np.asarray(text_list)[test.indices].tolist()
         print('Files have been read.')
 
     def encode_data(self):
