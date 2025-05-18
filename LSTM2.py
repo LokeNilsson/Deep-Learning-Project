@@ -390,6 +390,7 @@ class LSTM2:
 
     def synthesize_text(self, x0:np.ndarray, text_length:int, validation_loss = None, T = None, theta = None) -> str:
         chars = []
+        chars.append('T')
 
         # Load net
         torch_network = {}
@@ -403,7 +404,7 @@ class LSTM2:
         xt = torch.from_numpy(x0)
         ct1 = self.ct_prev1.detach()
         ct2 = self.ct_prev2.detach()
-        for t in range(text_length):
+        for t in range(text_length - 1):
             # input gate
             it1 = apply_sigmoid(torch.matmul(xt, torch_network['Wix1']) + torch.matmul(hprev1, torch_network['Wih1']) + torch_network['bi1'])
 
@@ -501,9 +502,9 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 25
-    m1, m2 = 16, 8    
-    epochs = 1
+    seq_length = 50
+    m1, m2 = 25, 25    
+    epochs = 3
     model_path = f'LSTM2/m1-{m1}_m2-{m2}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 

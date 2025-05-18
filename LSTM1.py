@@ -398,15 +398,17 @@ def main():
     BitGen = type(rng.bit_generator)
     rng.bit_generator.state = BitGen(42).state
     
-    # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 50
+    # Parameters: ------------------- CHANGE HERE ---------------------------
     m = 100
+    seq_length = 100
+    eta = 0.001
+
     epochs = 1
-    model_path = f'LSTM1/m{m}_SL{seq_length}_epochs{epochs}/'
+    model_path = f'LSTM1/m{m}_SL{seq_length}_epochs{epochs}_eta{eta}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise LSTM
-    lstm = LSTM1(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    lstm = LSTM1(m = m, K = datamanager.K, eta = eta, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)

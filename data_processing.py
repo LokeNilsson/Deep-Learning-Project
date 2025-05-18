@@ -41,7 +41,6 @@ class DataManager():
         self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
         self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
         self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
-
         # self.training_data = np.asarray(text_list)[train.indices].tolist()
         # self.validation_data = np.asarray(text_list)[val.indices].tolist()
         # self.test_data = np.asarray(text_list)[test.indices].tolist()
