@@ -41,6 +41,7 @@ class DataManager():
         self.training_data = ''.join(np.asarray(text_list)[train.indices].tolist())
         self.validation_data = ''.join(np.asarray(text_list)[val.indices].tolist())
         self.test_data = ''.join(np.asarray(text_list)[test.indices].tolist())
+
         # self.training_data = np.asarray(text_list)[train.indices].tolist()
         # self.validation_data = np.asarray(text_list)[val.indices].tolist()
         # self.test_data = np.asarray(text_list)[test.indices].tolist()
@@ -145,7 +146,11 @@ class DataManager():
         self.all_data = book_data
         self.K = len(unique_chars)
 
-        self.training_data = self.all_data
+        total_data = len(book_data)
+        self.training_data = book_data[0:int(total_data*0.6)]
+        self.validation_data = book_data[int(total_data*0.6):int(total_data*0.9)]
+        self.test_data = book_data[int(total_data*0.9):]
+
 
 
 def main():

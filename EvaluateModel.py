@@ -1,5 +1,4 @@
 import pickle
-from PyDictionary import PyDictionary as pydict
 import numpy as np
 import random
 from nltk.corpus import words as corpus_words
@@ -11,9 +10,7 @@ from RNN import RNN
 
 
 class ModelEvaluator():
-    def __init__(self):
-        self.eng_dict = pydict()
-        
+    def __init__(self):        
         # Randomiser
         rng = np.random.default_rng()
         BitGen = type(rng.bit_generator)
@@ -52,7 +49,7 @@ def main():
     ref_training_text = datamanager.training_data
 
     # Paramteres to fill in:
-    model_path = 'RNN/m125_SL50_epochs1'
+    model_path = 'RNN/m100_SL50_epochs1'
     text_length = 1000
 
     # Initialise Evaluator
@@ -71,7 +68,7 @@ def main():
     x0[0, ii] = 1
     
     # Generate Text
-    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = 0.7)
+    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = 0.2, theta = None)
     print(generated_text)
     evaluator.bleu_score(generated_text, ref_training_text)
     evaluator.percent_valid_words(generated_text)
