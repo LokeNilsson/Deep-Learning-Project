@@ -88,7 +88,7 @@ class LSTM1:
 
         torch_network = {}
         for kk in self.lstm.keys():
-            torch_network[kk] = torch.tensor(self.lstm[kk], requires_grad=True)
+            torch_network[kk] = torch.tensor(self.lstm[kk])
 
         # Create activation functions       
         apply_tanh = torch.nn.Tanh()
@@ -100,37 +100,34 @@ class LSTM1:
         ct = self.ct_prev.detach()
         # Iterate over articles
         data = list(zip(X, y))
-        for X_article, y_article in data:
-            # sequences from one article
-            sequences = list(zip(X_article, y_article))
+        hprev = self.last_h
+        for Xbatch, ybatch in data:
+            Xbatch = torch.from_numpy(Xbatch)
+            
+            # create an empty tensor to store the hidden vector at each timestep
+            Hs = torch.empty(self.tau, self.m, dtype=torch.float64)
 
-            hprev = self.last_h
-            for Xbatch_np, ybatch in sequences:
-                Xbatch = torch.from_numpy(Xbatch_np)
+            for t in range(self.tau):
+                # input gate
+                it = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wix']) + torch.matmul(hprev, torch_network['Wih']) + torch_network['bi'])
 
-                # create an empty tensor to store the hidden vector at each timestep
-                Hs = torch.empty(self.tau, self.m, dtype=torch.float64)
-                for t in range(self.tau):
-                    # input gate
-                    it = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wix']) + torch.matmul(hprev, torch_network['Wih']) + torch_network['bi'])
+                # candidate input
+                c_tilde = apply_tanh(torch.matmul(Xbatch[t:t+1,:], torch_network['Wcx']) + torch.matmul(hprev, torch_network['Wch']) + torch_network['bc'])
 
-                    # candidate input
-                    c_tilde = apply_tanh(torch.matmul(Xbatch[t:t+1,:], torch_network['Wcx']) + torch.matmul(hprev, torch_network['Wch']) + torch_network['bc'])
+                # forget gate
+                ft = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wfx']) + torch.matmul(hprev, torch_network['Wfh']) + torch_network['bf'])
 
-                    # forget gate
-                    ft = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wfx']) + torch.matmul(hprev, torch_network['Wfh']) + torch_network['bf'])
+                # update cell state
+                ct = ft*ct + it*c_tilde
 
-                    # update cell state
-                    ct = ft*ct + it*c_tilde
+                # output gate
+                ot = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wox']) + torch.matmul(hprev, torch_network['Woh']) + torch_network['bo'])
 
-                    # output gate
-                    ot = apply_sigmoid(torch.matmul(Xbatch[t:t+1,:], torch_network['Wox']) + torch.matmul(hprev, torch_network['Woh']) + torch_network['bo'])
+                # update hidden state (long-term memory)
+                ht = ot*apply_tanh(ct)
+                Hs[t:t+1, :] = ht
 
-                    # update hidden state (long-term memory)
-                    ht = ot*apply_tanh(ct)
-                    Hs[t:t+1, :] = ht
-
-                    hprev = ht
+                hprev = ht
             
             P = apply_softmax(torch.matmul(Hs, torch_network['V']) + torch_network['c']  )    
             
@@ -214,46 +211,41 @@ class LSTM1:
             print(f'epoch: {i+1}')
             # Shuffle data
             data = list(zip(X, y))
-            self.rng.shuffle(data) 
+            self.rng.shuffle(data)
 
             # reset h between epochs
             self.last_h = torch.zeros(1, self.m, dtype = torch.float64)
 
-            # Iterate over articles
-            for X_article, y_article in data:
-                 # sequences from one article
-                sequences = list(zip(X_article, y_article))
+            # Iterate over batches
+            for Xbatch, ybatch in data:
+                ht = self.last_h.detach().numpy()
 
-                for Xbatch, ybatch in sequences:
-                    self.tau = Xbatch.shape[0]
-                    ht = self.last_h.detach().numpy()
+                # Forward- and backward pass
+                grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
 
-                    # Forward- and backward pass
-                    grads, loss = self.BackwardsPass(Xbatch, ybatch, ht)
+                # Save loss
+                if t == 1:
+                    smooth_loss = loss
+                    loss_list.append(smooth_loss)
+                else:
+                    smooth_loss = 0.999 * smooth_loss + 0.001 *loss 
+                    loss_list.append(smooth_loss)
 
-                    # Save loss
-                    if t == 1:
-                        smooth_loss = loss
-                        loss_list.append(smooth_loss)
-                    else:
-                        smooth_loss = 0.999 * smooth_loss + 0.001 *loss 
-                        loss_list.append(smooth_loss)
-
-                    # SGD using Adam
-                    for kk in grads.keys():
-                        self.adam_params[f'm_{kk}'] = self.adam_params['beta1'] * self.adam_params[f'm_{kk}'] + (1-self.adam_params['beta1'])*grads[kk]
-                        self.adam_params[f'v_{kk}'] = self.adam_params['beta2'] * self.adam_params[f'v_{kk}'] + (1 - self.adam_params['beta2']) * grads[kk]**2
-                        self.adam_params[f'mhat_{kk}'] = self.adam_params[f'm_{kk}']/(1-self.adam_params['beta1']**t)
-                        self.adam_params[f'vhat_{kk}'] = self.adam_params[f'v_{kk}']/(1-self.adam_params['beta2']**t)
-            
-                        self.lstm[kk] = self.lstm[kk] - (self.eta/(np.sqrt(self.adam_params[f'vhat_{kk}']) + self.adam_params['eps']))*self.adam_params[f'mhat_{kk}']
-                    
-                    # Validation
-                    if t % 10000 == 0:
-                        print(f'iteration: {t}')
-                        val_loss.append(self.ComputeLoss(Xval, yval))
-                    
-                    t += 1 # increment iterations
+                # SGD using Adam
+                for kk in grads.keys():
+                    self.adam_params[f'm_{kk}'] = self.adam_params['beta1'] * self.adam_params[f'm_{kk}'] + (1-self.adam_params['beta1'])*grads[kk]
+                    self.adam_params[f'v_{kk}'] = self.adam_params['beta2'] * self.adam_params[f'v_{kk}'] + (1 - self.adam_params['beta2']) * grads[kk]**2
+                    self.adam_params[f'mhat_{kk}'] = self.adam_params[f'm_{kk}']/(1-self.adam_params['beta1']**t)
+                    self.adam_params[f'vhat_{kk}'] = self.adam_params[f'v_{kk}']/(1-self.adam_params['beta2']**t)
+        
+                    self.lstm[kk] = self.lstm[kk] - (self.eta/(np.sqrt(self.adam_params[f'vhat_{kk}']) + self.adam_params['eps']))*self.adam_params[f'mhat_{kk}']
+                
+                # Validation
+                if t % 10000 == 0:
+                    print(f'iteration: {t}')
+                    val_loss.append(self.ComputeLoss(Xval, yval))
+                
+                t += 1 # increment iterations
         # Training time
         end_time = perf_counter()
         self.training_time = end_time - start_time
@@ -299,9 +291,8 @@ class LSTM1:
             pickle.dump(model_data, f)
 
 
-    def synthesize_text(self, x0:np.ndarray, text_length:int, test_loss = None, T = None, theta = None) -> str:
-        
-        chars = []
+    def synthesize_text(self, x0:np.ndarray, text_length:int, val_loss = None, T = None, theta = None) -> str:
+        chars = ['T']
         xt = torch.from_numpy(x0)
 
         # Load net
@@ -377,8 +368,8 @@ class LSTM1:
             xt[0, ii] = 1
             
         text_seq = "".join(chars)
-        if test_loss:
-            text_seq += f'\n \n \n \n Test Loss: {test_loss} \n Training took {self.training_time:.2f} seconds'   
+        if val_loss:
+            text_seq += f'\n \n \n \n Test Loss: {val_loss} \n Training took {self.training_time:.2f} seconds'   
     
         return text_seq
         
@@ -393,9 +384,9 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 25
+    seq_length = 50
     m = 100
-    epochs = 10
+    epochs = 1
     model_path = f'LSTM1/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
@@ -403,26 +394,26 @@ def main():
     lstm = LSTM1(m = m, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
-    X_train, y_train = datamanager.create_article_sequences(datamanager.training_data, seq_length)
-    X_val, y_val = datamanager.create_article_sequences(datamanager.validation_data, seq_length)
-    X_test, y_test = datamanager.create_article_sequences(datamanager.test_data, seq_length)
+    X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
+    X_val, y_val = datamanager.create_sequences(datamanager.validation_data, seq_length)
+    X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
     print('Sequences created')
 
-    X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    # X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:100], y_train[0:100], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
 
     # Train network
     lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
     
     # Compute test loss
-    test_loss = lstm.ComputeLoss(X_test, y_test)
-    print(f'test loss: {round(test_loss, 2)}')
+    val_loss = lstm.ComputeLoss(X_val, y_val)
+    print(f'validation loss: {round(val_loss, 2)}')
     
     # Synthesize text
     # Generate starting letter
     x0 = np.zeros((1, lstm.K), dtype = np.float64)
     ii = lstm.char_to_ind['T']
     x0[0, ii] = 1
-    text_seq = lstm.synthesize_text(x0 = x0, text_length = 1000, test_loss = test_loss)
+    text_seq = lstm.synthesize_text(x0 = x0, text_length = 1000, val_loss = val_loss)
     with open(f'{model_path}/text.txt', 'w') as f:
         f.write(text_seq)
 

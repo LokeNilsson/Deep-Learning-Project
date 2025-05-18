@@ -52,7 +52,7 @@ def main():
     ref_training_text = datamanager.training_data
 
     # Paramteres to fill in:
-    model_path = 'RNN/m125_SL50_epochs1'
+    model_path = 'RNN/m200_SL100_epochs1'
     text_length = 1000
 
     # Initialise Evaluator

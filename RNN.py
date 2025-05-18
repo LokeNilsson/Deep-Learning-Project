@@ -58,7 +58,7 @@ class RNN:
     def ComputeLoss(self, X:list, y:list)->list:
         torch_network = {}
         for kk in self.rnn.keys():
-            torch_network[kk] = torch.tensor(self.rnn[kk], requires_grad=True)
+            torch_network[kk] = torch.tensor(self.rnn[kk])
 
         # Create activation functions       
         apply_tanh = torch.nn.Tanh()
@@ -312,12 +312,6 @@ def main():
     datamanager.read_files()
     ind_to_char, char_to_ind = datamanager.encode_data()
 
-    # Read Goblet of Fire --- Needs code adjustments below ---
-    # datamanager.read_HarryPotter()
-    # ind_to_char, char_to_ind = datamanager.ind_to_char, datamanager.char_to_ind
-    # X_val, y_val = None, None
-    # val_loss = None
-
     rng = np.random.default_rng()
     BitGen = type(rng.bit_generator)
     rng.bit_generator.state = BitGen(42).state
@@ -338,7 +332,7 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length=seq_length)
     print('Sequences created')
 
-    #X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:1], y_train[0:1], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    # X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:100], y_train[0:100], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
     
     # Train network
     rnn.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)
