@@ -225,6 +225,21 @@ class RNN:
         else:
             plt.show()
 
+        plt.figure('Training Loss', figsize = (10,5))
+        plt.plot(t_points, np.asarray(smooth_loss), 'b', label = 'training loss', linewidth = l_width)
+        plt.xticks(fontsize = 20)
+        plt.yticks(fontsize = 20)
+        plt.xlabel('Update steps', fontsize = f_size)
+        plt.ylabel('Smooth loss', fontsize = f_size)
+        plt.xlim(0, t)
+        plt.ylim(bottom = 0)
+        plt.legend(fontsize = f_size)
+        if model_path:
+            filename = f"{model_path}/training_loss"
+            plt.savefig(filename, bbox_inches='tight')
+        else:
+            plt.show()
+
     def save_model(self, model_path):
         model_data = {
             'self': self,
@@ -318,7 +333,7 @@ def main():
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
     seq_length = 25
-    m = 10
+    m = 100
     epochs = 1
     model_path = f'RNN/m{m}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)

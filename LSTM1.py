@@ -307,7 +307,7 @@ class LSTM1:
 
 
     def synthesize_text(self, x0:np.ndarray, text_length:int, val_loss = None, T = None, theta = None) -> str:
-        chars = ['T']
+        chars = []
         xt = torch.from_numpy(x0)
 
         # Load net
@@ -358,18 +358,28 @@ class LSTM1:
             elif not T and theta:
                 p = np.exp(o_s) / np.sum(np.exp(o_s), axis = 1, keepdims = True) # (1, K) 
 
-                sorted_p = np.sort(p) # Ascending
-                sorted_p = sorted_p[::-1] # Descending
+                # sorted_p = np.sort(p) # Ascending
+                # sorted_p = sorted_p[::-1] # Descending
                 
-                pt_sum = np.cumsum(sorted_p)
-                kt = np.argmax(pt_sum >= theta) 
-                p_prim = np.sum(sorted_p[:kt])
+                # pt_sum = np.cumsum(sorted_p)
+                # kt = np.argmax(pt_sum >= theta) 
+                # p_prim = np.sum(sorted_p[:kt])
 
-                mask = p >= p[0, kt]
-                p_tilde = np.zeros_like(p)
-                p_tilde[mask] = p[mask] / p_prim
+                # mask = p >= p[0, kt]
+                # p_tilde = np.zeros_like(p)
+                # p_tilde[mask] = p[mask] / p_prim
 
-                p = p_tilde
+                sorted_inds = np.flip(np.argsort(p, axis=1))[0,:]
+                p_sorted = p[:, sorted_inds]
+                cum_sum = np.cumsum(p_sorted, axis=1)
+                k_t = np.argmax(cum_sum >= theta)
+                p_t_k = p_sorted[:, k_t]
+                p_prime = np.sum(p_sorted[:, 0:k_t+1])
+
+                mask = np.where(p >= p_t_k, 1, 0)
+                p = (p/p_prime)*mask 
+
+                # p = p_tilde
             else: print("Error: Can not use temperature and nucleus sampling at the same time...")
 
             p = p.flatten()
@@ -400,8 +410,8 @@ def main():
     
     # Parameters: ------------------- CHANGE HERE ---------------------------
     m = 100
-    seq_length = 100
-    eta = 0.001
+    seq_length = 25
+    eta = 0.01
 
     epochs = 1
     model_path = f'LSTM1/m{m}_SL{seq_length}_epochs{epochs}_eta{eta}/'

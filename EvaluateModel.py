@@ -49,7 +49,7 @@ def main():
     ref_training_text = datamanager.training_data
 
     # Paramteres to fill in:
-    model_path = 'LSTM1/m100_SL50_epochs1'
+    model_path = 'LSTM2/m1-64_m2-32_SL50_epochs3'
     text_length = 1000
 
     # Initialise Evaluator
@@ -64,11 +64,11 @@ def main():
 
     # set starting character
     x0 = np.zeros((1, evaluator.model.K), dtype = np.float64)
-    ii = evaluator.model.char_to_ind['T']
+    ii = evaluator.model.char_to_ind[' ']
     x0[0, ii] = 1
     
     # Generate Text
-    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = 0.2)
+    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = None)
     print(generated_text)
     evaluator.bleu_score(generated_text, ref_training_text)
     evaluator.percent_valid_words(generated_text)
