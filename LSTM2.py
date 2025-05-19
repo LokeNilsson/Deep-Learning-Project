@@ -202,7 +202,6 @@ class LSTM2:
         # create an empty tensor to store the hidden vector at each timestep
         Hs = torch.empty(X.shape[0], h0_2.shape[1], dtype = torch.float64)
         
-        loss_list = []
         ct1 = self.ct_prev1.detach()
         ct2 = self.ct_prev2.detach()
         for t in range(self.tau):
@@ -213,10 +212,10 @@ class LSTM2:
             c_tilde1 = apply_tanh(torch.matmul(X[t:t+1,:], torch_network['Wcx1']) + torch.matmul(hprev1, torch_network['Wch1']) + torch_network['bc1'])
 
             # forget gate
-            ft2 = apply_sigmoid(torch.matmul(X[t:t+1,:], torch_network['Wfx1']) + torch.matmul(hprev1, torch_network['Wfh1']) + torch_network['bf1'])
+            ft1 = apply_sigmoid(torch.matmul(X[t:t+1,:], torch_network['Wfx1']) + torch.matmul(hprev1, torch_network['Wfh1']) + torch_network['bf1'])
 
             # update cell state
-            ct1 = ft2*ct1 + it1*c_tilde1
+            ct1 = ft1*ct1 + it1*c_tilde1
 
             # output gate
             ot1 = apply_sigmoid(torch.matmul(X[t:t+1,:], torch_network['Wox1']) + torch.matmul(hprev1, torch_network['Woh1']) + torch_network['bo1'])
@@ -254,7 +253,6 @@ class LSTM2:
         
         # compute the loss
         loss = torch.mean(-torch.log(P[np.arange(self.tau), y]))
-        loss_list.append(loss.detach().numpy())
 
         # compute the backward pass relative to the loss and the named parameters 
         loss.backward()
@@ -264,8 +262,7 @@ class LSTM2:
         for kk in self.lstm.keys():
             grads[kk] = torch_network[kk].grad.numpy()
 
-        loss_mean = np.mean(loss_list)
-        return grads, loss_mean
+        return grads, loss.detach().numpy()
     
 
     def training(self, X:list, y:list, Xval:np.ndarray, yval:np.ndarray, epochs:int, model_path = None, plot_loss = False):
@@ -279,11 +276,13 @@ class LSTM2:
             print(f' ----- Epoch: {i+1} ------ ')
             # Shuffle data
             data = list(zip(X, y))
-            #self.rng.shuffle(data) 
+            self.rng.shuffle(data) 
 
-            # Reset h between epochs
+            # Reset h and c between epochs
             self.last_h1 = torch.zeros(1, self.m1, dtype = torch.float64)
             self.last_h2 = torch.zeros(1, self.m2, dtype = torch.float64)
+            self.ct_prev1 = torch.zeros(1, self.m1, dtype = torch.float64)
+            self.ct_prev2 = torch.zeros(1, self.m2, dtype = torch.float64)
 
             # Iterate over articles
             for Xbatch, ybatch in data:
@@ -312,7 +311,7 @@ class LSTM2:
                     self.lstm[kk] = self.lstm[kk] - (self.eta/(np.sqrt(self.adam_params[f'vhat_{kk}']) + self.adam_params['eps']))*self.adam_params[f'mhat_{kk}']
                 
                 # Validation
-                if t % 10000 == 0:
+                if t % 1000 == 0:
                     print(f'iteration: {t}')
                     val_loss.append(self.ComputeLoss(Xval, yval))
                 
@@ -502,14 +501,14 @@ def main():
     rng.bit_generator.state = BitGen(42).state
     
     # Paramaters: ------------------- CHANGE HERE ---------------------------
-    seq_length = 50
-    m1, m2 = 25, 25    
-    epochs = 3
+    seq_length = 25
+    m1, m2 = 100, 50    
+    epochs = 200
     model_path = f'LSTM2/m1-{m1}_m2-{m2}_SL{seq_length}_epochs{epochs}/'
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
 
     # Initialise LSTM
-    lstm = LSTM2(m1 = m1, m2 = m2, K = datamanager.K, eta = 0.001, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
+    lstm = LSTM2(m1 = m1, m2 = m2, K = datamanager.K, eta = 0.01, rng = rng, tau = seq_length, ind_to_char = ind_to_char, char_to_ind = char_to_ind)
     
     # Divide data in to sequences
     X_train, y_train = datamanager.create_sequences(datamanager.training_data, seq_length)
@@ -517,7 +516,7 @@ def main():
     X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length)
     print('Sequences created')
 
-    #X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:100], y_train[0:100], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
+    # X_train, y_train, X_val, y_val, X_test, y_test = X_train[0:100], y_train[0:100], X_val[0:10], y_val[0:10], X_test[0:10], y_test[0:10]
     
     # Train network
     lstm.training(X_train, y_train, X_val, y_val, epochs = epochs, model_path = model_path)

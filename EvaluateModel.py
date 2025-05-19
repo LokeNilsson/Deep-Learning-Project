@@ -49,7 +49,7 @@ def main():
     ref_training_text = datamanager.training_data
 
     # Paramteres to fill in:
-    model_path = 'LSTM2/m1-64_m2-32_SL50_epochs3'
+    model_path = 'LSTM1/m150_SL25_epochs1_eta0.01'
     text_length = 1000
 
     # Initialise Evaluator
@@ -72,8 +72,6 @@ def main():
     print(generated_text)
     evaluator.bleu_score(generated_text, ref_training_text)
     evaluator.percent_valid_words(generated_text)
-    
-
 
 
 if __name__== "__main__":
