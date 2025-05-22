@@ -45,16 +45,26 @@ def main():
     # get training data
     datamanager = DataManager()
     datamanager.read_files()
+    datamanager.encode_data()
+    
 
     ref_training_text = datamanager.training_data
 
     # Paramteres to fill in:
-    model_path = 'LSTM2/m1-100_m2-50_SL25_epochs1_eta0.01'
-    text_length = 1000
+    # model_path = 'LSTM2/m1-100_m2-50_SL25_epochs1_eta0.01'
+    # model_path = 'LSTM1/m150_SL25_epochs1_eta0.01'
+    model_path = 'RNN/m100_SL50_epochs1'
+    text_length = 200
+
+    # X_test, y_test = datamanager.create_sequences(datamanager.test_data, seq_length=50)
 
     # Initialise Evaluator
     evaluator = ModelEvaluator()
-    evaluator.load_net(model_path = model_path)   
+    evaluator.load_net(model_path = model_path)
+
+    # test_loss = evaluator.model.ComputeLoss(X_test, y_test)
+    # print(f'test loss: {round(test_loss, 2)}')
+
     
     # Random starting character
     # all_char_indices = list(evaluator.model.char_to_ind.values())
@@ -68,7 +78,7 @@ def main():
     x0[0, ii] = 1
     
     # Generate Text
-    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = 0.4)
+    generated_text = evaluator.model.synthesize_text(x0 = x0, text_length = text_length, T = None, theta = 0.6)
     print(generated_text)
     evaluator.bleu_score(generated_text, ref_training_text)
     evaluator.percent_valid_words(generated_text)

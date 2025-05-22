@@ -267,7 +267,7 @@ class RNN:
         b, c = self.rnn['b'], self.rnn['c']
 
         h = self.last_h.detach().numpy()
-        chars = ['T']
+        chars = []
 
         xt = x0.reshape(1, self.K) # (1, K)
         for t in range(text_length):
@@ -290,18 +290,28 @@ class RNN:
             elif not T and theta:
                 p = np.exp(o) / np.sum(np.exp(o), axis = 1, keepdims = True) # (1, K) 
 
-                sorted_p = np.sort(p) # Ascending
-                sorted_p = sorted_p[::-1] # Descending
+                # sorted_p = np.sort(p) # Ascending
+                # sorted_p = sorted_p[::-1] # Descending
                 
-                pt_sum = np.cumsum(sorted_p)
-                kt = np.argmax(pt_sum >= theta) 
-                p_prim = np.sum(sorted_p[:kt])
+                # pt_sum = np.cumsum(sorted_p)
+                # kt = np.argmax(pt_sum >= theta) 
+                # p_prim = np.sum(sorted_p[:kt])
 
-                mask = p >= p[0, kt]
-                p_tilde = np.zeros_like(p)
-                p_tilde[mask] = p[mask] / p_prim
+                # mask = p >= p[0, kt]
+                # p_tilde = np.zeros_like(p)
+                # p_tilde[mask] = p[mask] / p_prim
 
-                p = p_tilde
+                sorted_inds = np.flip(np.argsort(p, axis=1))[0,:]
+                p_sorted = p[:, sorted_inds]
+                cum_sum = np.cumsum(p_sorted, axis=1)
+                k_t = np.argmax(cum_sum >= theta)
+                p_t_k = p_sorted[:, k_t]
+                p_prime = np.sum(p_sorted[:, 0:k_t+1])
+
+                mask = np.where(p >= p_t_k, 1, 0)
+                p = (p/p_prime)*mask
+
+                # p = p_tilde
             else: print("Error: Can not use temperature and nucleus sampling at the same time...")
 
             p = p.flatten()
